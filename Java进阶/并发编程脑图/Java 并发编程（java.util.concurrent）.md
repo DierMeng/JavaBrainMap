@@ -142,11 +142,18 @@ fullyRelease
 
 	- ExecutorService，接口，定义完整的线程池行为
 
-		- AbstractExecutorService，抽象类
+		- AbstractExecutorService，抽象类，主要是实现 ExecutorService 接口生命的任务提交等方法
 
 			- ThreadPoolExecutor
-			- ForkJoinPool
-			- DelegatedExecutorService
+			- ForkJoinPool，分而治之，工作窃取
+
+			  老四之前在博客中写过关于 Fork/Join 框架的一片文章，可以参考《浅析Java中的Fork和Join并发编程框架》。http://www.glorze.com/792.html
+
+				- 关于 Fork/Join 框架，老四单独总结了脑图，请在当前目录查看。
+
+			- Executors 的静态内部类：DelegatedExecutorService
+
+				- 包装类，方法代理到内部的 ExecutorService，只暴漏ExecutorService 定义的方法。
 
 		- ScheduledExecutorService，接口
 
@@ -162,15 +169,30 @@ fullyRelease
 			- List<Runnable> shutdownNow();
 
 				- 立即关闭，跳过所有正在执行的任务和被提交还没有执行的任务。但是它并不对正在执行的任务做任何保证，有可能它们都会停止，也有可能执行完成。
+				- 返回等待执行的任务列表
 
 			- boolean isShutdown();
+
+				- 判断线程池是否已关闭
+
 			- boolean isTerminated();
+
+				- 如果调用了 shutdown() 或 shutdownNow() 方法后，所有任务结束了，那么该方法返回 true
+				- 这个方法必须在调用 shutdown 或 shutdownNow方 法之后调用才会返回 true
+
 			- boolean awaitTermination(long timeout, TimeUnit unit)
+
+				- 等待所有任务完成，并设置超时时间
+				- 先调用 shutdown 或 shutdownNow，然后再调这个方法等待所有的线程真正地完成，返回值意味着有没有超时
+
 			- <T> Future<T> submit(Callable<T> task);
 
 				- 返回一个 Future 对象，除此之外，submit(Callable) 接收的是一个 Callable 的实现，Callable 接口中的 call() 方法有一个返回值，可以返回任务的执行结果，而 Runnable 接口中的 run() 方法是 void 的，没有返回值。
 
 			- <T> Future<T> submit(Runnable task, T result);
+
+				- 提交一个 Runnable 任务，第二个参数将会放到 Future 中，作为返回值
+
 			- Future<?> submit(Runnable task);
 
 				- 可以返回一个 Future 对象，通过返回的 Future 对象，我们可以检查提交的任务是否执行完毕（future.get()，返回 null 说明任务正确执行完成，方法会阻塞）。
@@ -181,6 +203,9 @@ fullyRelease
 
 			-  <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
                                   long timeout, TimeUnit unit)
+
+				- 执行所有任务，设置超时时间
+
 			- <T> T invokeAny(Collection<? extends Callable<T>> tasks)
 
 				- 接收的是一个 Callable 的集合，执行这个方法不会返回 Future，但是会返回所有 Callable 任务中其中一个任务的执行结果。这个方法也无法保证返回的是哪个任务的执行结果，反正是其中的某一个。
@@ -188,7 +213,9 @@ fullyRelease
 			- <T> T invokeAny(Collection<? extends Callable<T>> tasks,
                     long timeout, TimeUnit unit)
 
-	- execute 声明了执行一个任务，Runnable 表示任务，作用就是执行提交的任务，仅此而已
+				- 带超时，超过指定的时间，抛出 TimeoutException 异常
+
+	- execute 声明了执行一个任务，Runnable 表示任务，作用就是执行提交的任务，仅此而已。但是该方式提交的任务没有返回值，所以无法判断任务是否执行成功。
 
 - CompletionService，接口，在一个对象里发送任务给执行器，然后在另一个对象里处理结果。接口声明发送和处理两种方法实现适配这种情形
 

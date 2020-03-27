@@ -1,0 +1,531 @@
+链接：https://app.gitmind.cn/doc/dcc56428
+官方文档地址：https://mp.baomidou.com/
+MyBatis-Plus
+	快速入门
+		简介
+			MyBatis-Plus（简称 MP）是一个 MyBatis 的增强工具，在 MyBatis 的基础上只做增强不做改变，为简化开发、提高效率而生。
+			特性
+				无侵入
+				损耗小
+				强大的 CRUD 操作
+				支持 Lambda 形式调用
+				支持主键自动生成
+				支持 ActiveRecord 模式
+				支持自定义全局通用操作
+				内置代码生成器
+				内置分页插件
+				分页插件支持多种数据库
+				内置性能分析插件
+				内置全局拦截插件
+			支持数据库
+				mysql 、 mariadb 、 oracle 、 db2 、 h2 、 hsql 、 sqlite 、 postgresql 、 sqlserver
+		快速开始
+		安装
+		配置
+		注解
+			@TableName（表名注解）
+				value
+					表名
+				schema
+				keepGlobalPrefix
+					是否保持使用全局的 tablePrefix 的值
+				resultMap
+					xml 中 resultMap 的 id
+				autoResultMap
+					是否自动构建 resultMap 并使用
+			@TableId（主键注解）
+				value（主键字段名）
+				type（主键类型）
+					IdType
+						AUTO，数据库自增
+						INPUT，自行输入
+						ID_WORKER，分布式全局唯一ID 长整型类型
+						UUID，32位UUID字符串
+						NONE，无状态
+						ID_WORKER_STR，分布式全局唯一ID 字符串类型
+			@TableField（非主键字段注解）
+				value，字段名
+				el，映射为原生 #{ ... } 逻辑
+				exist，是否为数据库表字段
+				condition，字段 where 实体查询比较条件,有值设置则按设置的值为准,没有则为默认全局的 %s=#{%s}
+				update，字段 update set 部分注入, 例如：update="%s+1"：表示更新时会set version=version+1(该属性优先级高于 el 属性)
+				strategy
+					insertStrategy
+					updateStrategy
+					whereStrategy
+					FieldStrategy
+						IGNORED，忽略判断
+						NOT_NULL，非NULL判断
+						NOT_EMPTY，非空判断（只对字符串类型字段,其他类型字段依然为非NULL判断）
+						DEFAULT，追随全局配置
+				fill，字段自动填充策略
+					FieldFill
+						DEFAULT，默认不处理
+						INSERT，插入时填充字段
+						UPDATE，更新时填充字段
+						INSERT_UPDATE，插入和更新时填充字段
+				select，是否进行 select 查询
+				keepGlobalFormat，是否保持使用全局的 format 进行处理
+			@Version
+				乐观锁注解、标记 @Verison 在字段上
+			@EnumValue
+				通枚举类注解（注解在枚举字段上）
+			@TableLogic，表字段逻辑处理注解（逻辑删除）
+				value，逻辑未删除值
+				delval，逻辑删除值
+			@SqlParser，租户注解
+				filter
+					true: 表示过滤SQL解析，即不会进入ISqlParser解析链
+			@KeySequence
+				序列主键策略 oracle
+					value，序列名
+					clazz，id 的类型
+	核心功能
+		代码生成器
+		CRUD 接口
+			Service CRUD 接口
+				说明
+					通用 Service CRUD 封装 IService 接口，进一步封装 CRUD 采用 get 查询单行，remove 删除，list 查询集合，page 分页，前缀命名方式区分 Mapper 层避免混淆。
+					泛型 T 为任意实体对象
+					建议如果存在自定义通用 Service 方法的可能，请创建自己的 IBaseService 继承 Mybatis-Plus 提供的基类
+					对象 Wrapper 为条件构造器
+				Save
+					boolean save(T entity);
+						 插入一条记录（选择字段，策略插入）
+					boolean saveBatch(Collection<T> entityList);
+						插入（批量）
+					boolean saveBatch(Collection<T> entityList, int batchSize);
+						插入（批量，带插入批次数量）
+				SaveOrUpdate
+					boolean saveOrUpdate(T entity);
+						主键存在即更新记录，否插入一条记录
+					boolean saveOrUpdate(T entity, Wrapper<T> updateWrapper);
+						 根据 updateWrapper 尝试更新，否继续执行 saveOrUpdate(T) 方法
+					boolean saveOrUpdateBatch(Collection<T> entityList);
+						批量修改插入
+					boolean saveOrUpdateBatch(Collection<T> entityList, int batchSize);
+						批量修改插入（带修改插入批次数量）
+				Remove
+					boolean remove(Wrapper<T> queryWrapper);
+						 根据 entity 条件，删除记录
+					boolean removeById(Serializable id);
+						根据 ID 删除
+					boolean removeByMap(Map<String, Object> columnMap);
+						根据 columnMap 条件，删除记录
+					boolean removeByIds(Collection<? extends Serializable> idList);
+						 删除（根据ID 批量删除）
+				Update
+					boolean update(Wrapper<T> updateWrapper);
+						根据 UpdateWrapper 条件，更新记录，需要设置 sqlset
+					boolean update(T entity, Wrapper<T> updateWrapper);
+						根据 whereEntity 条件，更新记录
+					boolean updateById(T entity);
+						根据 ID 选择修改
+					boolean updateBatchById(Collection<T> entityList);
+						根据ID 批量更新
+					boolean updateBatchById(Collection<T> entityList, int batchSize);
+						根据ID 批量更新（带删除批次数量）
+				Get
+					T getById(Serializable id);
+						根据 ID 查询
+					T getOne(Wrapper<T> queryWrapper);
+						根据 Wrapper，查询一条记录。结果集，如果是多个会抛出异常，随机取一条加上限制条件 wrapper.last("LIMIT 1")
+					T getOne(Wrapper<T> queryWrapper, boolean throwEx);
+						根据 Wrapper，查询一条记录
+					Map<String, Object> getMap(Wrapper<T> queryWrapper);
+						根据 Wrapper，查询一条记录
+					<V> V getObj(Wrapper<T> queryWrapper, Function<? super Object, V> mapper);
+						根据 Wrapper，查询一条记录
+				List
+					List<T> list();
+						查询所有
+					List<T> list(Wrapper<T> queryWrapper);
+						查询列表
+					Collection<T> listByIds(Collection<? extends Serializable> idList);
+						查询（根据ID 批量查询）
+					Collection<T> listByMap(Map<String, Object> columnMap);
+						查询（根据 columnMap 条件）
+					List<Map<String, Object>> listMaps();
+						查询所有列表
+					List<Map<String, Object>> listMaps(Wrapper<T> queryWrapper);
+						查询列表
+					List<Object> listObjs();
+						查询全部记录
+					<V> List<V> listObjs(Function<? super Object, V> mapper);
+						查询全部记录
+					List<Object> listObjs(Wrapper<T> queryWrapper);
+						根据 Wrapper 条件，查询全部记录
+					<V> List<V> listObjs(Wrapper<T> queryWrapper, Function<? super Object, V> mapper);
+						根据 Wrapper 条件，查询全部记录
+				Page
+					IPage<T> page(IPage<T> page);
+						无条件翻页查询
+					IPage<T> page(IPage<T> page, Wrapper<T> queryWrapper);
+						翻页查询
+					IPage<Map<String, Object>> pageMaps(IPage<T> page);
+						无条件翻页查询
+					IPage<Map<String, Object>> pageMaps(IPage<T> page, Wrapper<T> queryWrapper);
+						翻页查询
+				Count
+					int count();
+						查询总记录数
+					int count(Wrapper<T> queryWrapper);
+						根据 Wrapper 条件，查询总记录数
+				Chain
+					QueryChainWrapper<T> query();
+						链式查询 普通
+					LambdaQueryChainWrapper<T> lambdaQuery(); 
+						链式查询 lambda 式。注意：不支持 Kotlin
+					UpdateChainWrapper<T> update();
+						链式更改 普通
+					LambdaUpdateChainWrapper<T> lambdaUpdate();
+						链式更改 lambda 式。注意：不支持 Kotlin 
+			Mapper CRUD 接口
+				说明 
+					通用 CRUD 封装 BaseMapper 接口，为 Mybatis-Plus 启动时自动解析实体表关系映射转换为 Mybatis 内部对象注入容器
+					泛型 T 为任意实体对象
+					参数 Serializable 为任意类型主键 Mybatis-Plus，不推荐使用复合主键约定每一张表都有自己的唯一 id 主键
+					对象 Wrapper 为条件构造器
+				Insert
+					int insert(T entity);
+						 插入一条记录
+				Delete
+					int delete(@Param(Constants.WRAPPER) Wrapper<T> wrapper);
+						根据 entity 条件，删除记录
+					int deleteBatchIds(@Param(Constants.COLLECTION) Collection<? extends Serializable> idList);
+						删除（根据ID 批量删除）
+					int deleteById(Serializable id);
+						 根据 ID 删除
+					int deleteByMap(@Param(Constants.COLUMN_MAP) Map<String, Object> columnMap);
+						根据 columnMap 条件，删除记录
+				Update
+					int update(@Param(Constants.ENTITY) T entity, @Param(Constants.WRAPPER) Wrapper<T> updateWrapper);
+						根据 whereEntity 条件，更新记录
+					int updateById(@Param(Constants.ENTITY) T entity);
+						根据 ID 修改
+				Select
+					T selectById(Serializable id);
+						根据 ID 查询
+					T selectOne(@Param(Constants.WRAPPER) Wrapper<T> queryWrapper);
+						根据 entity 条件，查询一条记录
+					List<T> selectBatchIds(@Param(Constants.COLLECTION) Collection<? extends Serializable> idList);
+						查询（根据ID 批量查询）
+					List<T> selectList(@Param(Constants.WRAPPER) Wrapper<T> queryWrapper);
+						根据 entity 条件，查询全部记录
+					List<T> selectByMap(@Param(Constants.COLUMN_MAP) Map<String, Object> columnMap);
+						 查询（根据 columnMap 条件）
+					List<Map<String, Object>> selectMaps(@Param(Constants.WRAPPER) Wrapper<T> queryWrapper);
+						根据 Wrapper 条件，查询全部记录
+					List<Object> selectObjs(@Param(Constants.WRAPPER) Wrapper<T> queryWrapper);
+						 根据 Wrapper 条件，查询全部记录。注意： 只返回第一个字段的值
+					IPage<T> selectPage(IPage<T> page, @Param(Constants.WRAPPER) Wrapper<T> queryWrapper);
+						根据 entity 条件，查询全部记录（并翻页）
+					IPage<Map<String, Object>> selectMapsPage(IPage<T> page, @Param(Constants.WRAPPER) Wrapper<T> queryWrapper);
+						根据 Wrapper 条件，查询全部记录（并翻页）
+					Integer selectCount(@Param(Constants.WRAPPER) Wrapper<T> queryWrapper);
+						根据 Wrapper 条件，查询总记录数
+			mapper 层选装件
+				说明
+					选装件位于 com.baomidou.mybatisplus.extension.injector.methods.additional 包下，需要配合 Sql 注入器使用
+				AlwaysUpdateSomeColumnById
+					int alwaysUpdateSomeColumnById(T entity);
+				insertBatchSomeColumn
+					int insertBatchSomeColumn(List<T> entityList);
+				deleteByIdWithFill
+					int deleteByIdWithFill(T entity);
+		条件构造器
+			说明
+				出现的第一个入参 boolean condition 表示该条件是否加入最后生成的 sql 中
+				代码块内的多个方法均为从上往下补全个别 boolean 类型的入参,默认为 true
+				出现的泛型 Param 均为 Wrapper 的子类实例（均具有 AbstractWrapper 的所有方法）
+				方法在入参中出现的 R 为泛型，在普通 wrapper 中是 String，在 LambdaWrapper 中是函数（例：Entity::getId，Entity 为实体类，getId 为字段 id 的 getMethod）
+				方法入参中的 R column 均表示数据库字段，当 R 具体类型为 String 时则为数据库字段名而不是实体类数据字段名（字段名是数据库关键字的自己用转义符包裹），另当 R 具体类型为 SFunction 时项目 runtime 不支持 eclipse 自家的编译器。
+				如果入参的 Map 或者 List 为空，则不会加入最后生成的 sql 中。
+			警告
+				不支持以及不赞成在 RPC 调用中把 Wrapper 进行传输
+					wrapper 很重
+					传输 wrapper 可以类比为你的 controller 用 map 接收值（开发一时爽，维护火葬场）
+					正确的 RPC 调用姿势是写一个 DTO 进行传输，被调用方再根据 DTO 执行相应的操作
+			AbstractWrapper
+				QueryWrapper(LambdaQueryWrapper) 和 UpdateWrapper(LambdaUpdateWrapper) 的父类
+				用于生成 sql 的 where 条件，entity 属性也用于生成 sql 的 where 条件
+				entity 生成的 where 条件与使用各个 api 生成的 where 条件没有任何关联行为
+				allEq
+					allEq(Map<R, V> params)
+					allEq(Map<R, V> params, boolean null2IsNull)
+					allEq(boolean condition, Map<R, V> params, boolean null2IsNull)
+					allEq(BiPredicate<R, V> filter, Map<R, V> params)
+					allEq(BiPredicate<R, V> filter, Map<R, V> params, boolean null2IsNull)
+					allEq(boolean condition, BiPredicate<R, V> filter, Map<R, V> params, boolean null2IsNull) 
+					params：key 为数据库字段名，value 为字段值。
+					null2IsNull：为 true 则在 map 的 value 为 null 时调用 isNull 方法，为 false 时则忽略 value 为 null 的情况。
+					filter：过滤函数，是否允许字段传入比对条件中。
+				eq
+					eq(R column, Object val)
+					eq(boolean condition, R column, Object val)
+				ne
+					ne(R column, Object val)
+					ne(boolean condition, R column, Object val)
+				gt
+					gt(R column, Object val)
+					gt(boolean condition, R column, Object val)
+				ge（大于等于）
+					ge(R column, Object val)
+					ge(boolean condition, R column, Object val)
+				lt
+					lt(R column, Object val)
+					lt(boolean condition, R column, Object val)
+				le（小于等于）
+					le(R column, Object val)
+					le(boolean condition, R column, Object val)
+				between
+					between(R column, Object val1, Object val2)
+					between(boolean condition, R column, Object val1, Object val2)
+				notBetween
+					notBetween(R column, Object val1, Object val2)
+					notBetween(boolean condition, R column, Object val1, Object val2)
+				like
+					like(R column, Object val)
+					like(boolean condition, R column, Object val)
+				notLike
+					notLike(R column, Object val)
+					notLike(boolean condition, R column, Object val)
+				likeLeft
+					likeLeft(R column, Object val)
+					likeLeft(boolean condition, R column, Object val)
+				likeRight
+					likeRight(R column, Object val)
+					likeRight(boolean condition, R column, Object val)
+				isNull
+					isNull(R column)
+					isNull(boolean condition, R column)
+				isNotNull
+					isNotNull(R column)
+					isNotNull(boolean condition, R column)
+				in
+					in(R column, Collection<?> value)
+					in(boolean condition, R column, Collection<?> value)
+					in(R column, Object... values)
+					in(boolean condition, R column, Object... values)
+				notIn
+					notIn(R column, Collection<?> value)
+					notIn(boolean condition, R column, Collection<?> value)
+					notIn(R column, Object... values)
+					notIn(boolean condition, R column, Object... values)
+				inSql
+					inSql(R column, String inValue)
+					inSql(boolean condition, R column, String inValue)
+				notInSql
+					notInSql(R column, String inValue)
+					notInSql(boolean condition, R column, String inValue)
+				groupBy
+					groupBy(R... columns)
+					groupBy(boolean condition, R... columns)
+				orderByAsc
+					orderByAsc(R... columns)
+					orderByAsc(boolean condition, R... columns)
+				orderByDesc
+					orderByDesc(R... columns)
+					orderByDesc(boolean condition, R... columns)
+				orderBy
+					orderBy(boolean condition, boolean isAsc, R... columns)
+				having
+					having(String sqlHaving, Object... params)
+					having(boolean condition, String sqlHaving, Object... params)
+				or
+					or()
+					or(boolean condition)
+					or(Consumer<Param> consumer)
+					or(boolean condition, Consumer<Param> consumer)
+				and
+					and(Consumer<Param> consumer)
+					and(boolean condition, Consumer<Param> consumer)
+				nested（嵌套）
+					nested(Consumer<Param> consumer)
+					nested(boolean condition, Consumer<Param> consumer)
+				apply（拼接 sql）
+					apply(String applySql, Object... params)
+					apply(boolean condition, String applySql, Object... params)
+				last（无视优化规则直接拼接到 sql 的最后）
+					last(String lastSql)
+					last(boolean condition, String lastSql)
+					只能调用一次，多次调用以最后一次为准，有 sql 注入的风险，请谨慎使用
+				exists
+					exists(String existsSql)
+					exists(boolean condition, String existsSql)
+				notExists
+					notExists(String notExistsSql)
+					notExists(boolean condition, String notExistsSql)
+			QueryWrapper
+				继承自 AbstractWrapper，自身的内部属性 entity 也用于生成 where 条件
+				LambdaQueryWrapper，可以通过 new QueryWrapper().lambda() 方法获取
+				select
+					select(String... sqlSelect)
+					select(Predicate<TableFieldInfo> predicate)
+					select(Class<T> entityClass, Predicate<TableFieldInfo> predicate)
+				excludeColumns
+			UpdateWrapper
+				继承自 AbstractWrapper，自身的内部属性 entity 也用于生成 where 条件
+				LambdaUpdateWrapper, 可以通过 new UpdateWrapper().lambda() 方法获取
+				set
+					set(String column, Object val)
+					set(boolean condition, String column, Object val)
+				setSql
+					setSql(String sql)
+				lambda
+					获取 LambdaWrapper
+						在 QueryWrapper 中是获取 LambdaQueryWrapper
+						在 UpdateWrapper 中是获取 LambdaUpdateWrapper
+			使用 Wrapper 自定义SQL
+				注解方式 Mapper.java
+				XML形式 Mapper.xml
+		分页插件
+		Sequence 主键
+			主键生成策略必须使用 INPUT
+			支持父类定义 @KeySequence 子类继承使用
+			支持主键类型指定
+			内置支持
+				DB2KeyGenerator
+				H2KeyGenerator
+				KingbaseKeyGenerator
+				OracleKeyGenerator
+				PostgreKeyGenerator
+				如果内置支持不满足需求，可实现 IKeyGenerator 接口来进行扩展
+		自定义 ID 生成器
+	插件扩展
+		热加载
+			功能已经移除
+			多数据源配置多个 MybatisMapperRefresh 启动 bean
+			默认情况下，eclipse 保存会自动编译，idea 需自己手动编译一次
+		逻辑删除
+			逻辑删除是为了方便数据恢复和保护数据本身价值等等的一种方案，但实际就是删除。
+			如果你需要再查出来就不应使用逻辑删除，而是以一个状态去表示。
+		通用枚举
+			声明通用枚举属性
+				使用 @EnumValue 注解枚举属性
+				枚举属性，实现 IEnum 接口
+			配置扫描通用枚举
+			如何序列化枚举值为数据库存储值？
+				Jackson
+					重写 toString 方法
+					注解处理 @JsonValue
+				Fastjson
+					重写 toString 方法
+		字段类型处理器
+			类型处理器，用于 JavaType 与 JdbcType 之间的转换，用于 PreparedStatement 设置参数值和从 ResultSet 或 CallableStatement 中取出一个值
+		自动填充功能
+		Sql 注入器
+		攻击 SQL 阻断解析器
+			阻止恶意的全表更新删除
+		性能分析插件
+			性能分析拦截器，用于输出每条 SQL 语句及其执行时间
+			maxTime SQL 执行最大时长，超过自动停止运行，有助于发现问题。
+			format SQL SQL是否格式化，默认false。
+			该插件只用于开发环境，不建议生产环境使用。
+		执行 SQL 分析打印
+			该功能依赖 p6spy 组件，完美的输出打印 SQL 及执行时长
+		乐观锁插件
+			当要更新一条记录的时候，希望这条记录没有被别人更新
+			乐观锁实现方式
+				取出记录时，获取当前 version
+				更新时，带上这个 version
+				执行更新时， set version = newVersion where version = oldVersion
+				如果 version 不对，就更新失败
+			支持的数据类型只有：int，Integer，long，Long，Date，Timestamp，LocalDateTime
+			整数类型下 newVersion = oldVersion + 1
+			newVersion 会回写到 entity 中
+			仅支持 updateById(id) 与 update(entity, wrapper) 方法
+			在 update(entity, wrapper) 方法下, wrapper 不能复用
+		动态数据源
+		分布式事务
+			暂时支持 rabbit 实现可靠消息分布式事务
+		多租户 SQL 解析器
+		动态表名 SQL 解析器
+			实现 ITableNameHandler 接口注入到 DynamicTableNameParser 处理器链中，将动态表名解析器注入到 MP 解析链
+			原理为解析替换设定表名为处理器的返回表名，表名建议可以定义复杂一些避免误替换
+		MybatisX 快速开发插件
+	常见问题
+		如何排除非表中字段？
+			使用 transient 修饰
+			使用 static 修饰
+			使用 TableField 注解
+		排除实体父类属性
+			使用 transient 修饰
+		出现 Invalid bound statement (not found) 异常
+			检查是不是引入 jar 冲突
+			检查 Mapper.java 的扫描路径
+				在 Configuration 类上使用注解 MapperScan
+				在Configuration类里面，配置MapperScannerConfigurer
+			检查是否指定了主键？
+			qlSessionFactory 不要使用原生的，请使用 MybatisSqlSessionFactory
+			检查是否自定义了 SqlInjector，是否复写了 getMethodList() 方法，该方法里是否注入了你需要的方法
+		自定义 SQL 无法执行
+			在 XML 中里面自定义 SQL，却无法调用
+		启动时异常
+			java.lang.ClassCastException: sun.reflect.generics.reflectiveObjects.TypeVariableImpl cannot be cast to java.lang.Class
+				MapperScan 需要排除 com.baomidou.mybatisplus.mapper.BaseMapper 类及其子类（自定义公共 Mapper）
+			Injection of autowired
+				低版本不支持泛型注入，请升级 Spring 版本到 4+ 以上
+			java.lang.NoSuchMethodError: org.apache.ibatis.session.Configuration.getDefaultScriptingLanguageInstance() Lorg/apache/ibatis/scripting/LanguageDriver
+				版本引入问题：3.4.1 版本里没有，3.4.2 里面才有
+		关于 Long 型主键填充不生效的问题
+			检查是不是用了long而不是Long
+		ID_WORKER 生成主键太长导致 js 精度丢失
+			JavaScript 无法处理 Java 的长整型 Long 导致精度丢失，具体表现为主键最后两位永远为 0
+			FastJson 处理方式：配置序列化策略
+			JackJson 处理方式
+			比较一般的处理方式：增加一个 public String getIdStr() 方法，前台获取 idStr
+		插入或更新的字段 空字符串或者 null
+			FieldStrategy 的三种策略
+				IGNORED：忽略
+				NOT_NULL：非 NULL，默认策略
+				NOT_EMPTY：非空
+			调整全局的验证策略
+				注入配置 GlobalConfiguration 属性 fieldStrategy
+			调整字段验证注解
+			使用 UpdateWrapper
+		字段类型为 bit、tinyint(1) 时映射为 boolean 类型
+			默认 mysql 驱动会把 tinyint(1) 字段映射为 boolean: 0=false, 非0=true
+			修改类型 tinyint(1) 为 tinyint(2) 或者 int
+			需要修改请求连接添加参数 tinyInt1isBit=false
+		出现 2 个 limit 语句
+			配了 2 个分页拦截器，检查配置文件或者代码，只留一个
+		insert 后如何返回主键
+			getId()
+		MP 如何查指定的几个字段
+			EntityWrapper.sqlSelect 配置要查询的字段
+		mapper 层二级缓存问题
+			建议缓存放到 service 层，可以自定义自己的 BaseServiceImpl 重写注解父类方法，继承自己的实现。
+			使用 CachePaginationInterceptor 替换默认分页，这样支持分页缓存
+		mapper 层二级缓存刷新问题
+			在代码中 mybatis 的 mapper 层添加缓存注释，声明 implementation 或 eviction 的值为 cache 接口的实现类
+			在对应的 mapper.xml 中将原有注释修改为链接式声明，以保证 xml 文件里的缓存能够正常
+		Cause: org.apache.ibatis.type.TypeException:Error setting null for parameter #1 with JdbcType OTHER
+			配置 jdbcTypeForNull=NULL Spring Bean
+		自定义 sql 里使用 Page 对象传参无法获取
+			Page 对象是继承 RowBounds，是 Mybatis 内置对象，无法在 mapper 里获取
+			使用自定义 Map/对象，或者通过@Param("page") int page,size 来传参
+			Java Config Bean 配置
+				配置自定义的 SqlInjector
+				配置自己的全局 baseMapper 并使用
+		如何使用:【Map下划线自动转驼峰】
+		在 wrapper 中如何使用 limit 限制 SQL
+			wrapper.last("limit 1");
+		通用 insertBatch 为什么放在 service 层处理
+			SQL 长度有限制海量数据量单条 SQL 无法执行，就算可执行也容易引起内存泄露 JDBC 连接超时等
+			不同数据库对于单条 SQL 批量语法不一样不利于通用
+			目前的解决方案：循环预处理批量提交，虽然性能比单 SQL 慢但是可以解决以上问题。
+		逻辑删除下 自动填充 功能没有效果
+			自动填充的实现方式是填充到入参的 entity 内，由于 baseMapper 提供的删除接口入参不是 entity 所以逻辑删除无效
+			使用 update 方法：UpdateWrapper.set("logicDeleteColumn","deleteValue")
+			配合Sql注入器
+		3.x数据库关键字如何处理？
+			不同的数据库对关键字的处理不同，很难维护。
+			在数据库设计时候本身不建议使用关键字。
+			交由用户去处理关键字。
+		MybatisPlusException: Your property named "xxx" cannot find the corresponding database column name!
+			单元测试没问题，启动服务器进行调试就出现这个问题
+			去掉dev-tools插件
+		Error attempting to get column 'create_time' from result set. Cause: java.sql.SQLFeatureNotSupportedException
+		mp版本从3.1.0及以下版本升级到高版本，JDK8日期新类型LocalDateTime等无法映射（报错）
+		Failed to bind properties under 'mybatis-plus.configuration.incomplete-result-maps[0].assistant.configuration.mapped-statements[0].parameter-map.parameter-mappings[0]' to org.apache.ibatis.mapping.ParameterMapping

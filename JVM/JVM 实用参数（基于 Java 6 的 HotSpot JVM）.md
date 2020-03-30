@@ -249,6 +249,18 @@
 
 - -XX:PrintGCDetails
 
+### 在 Serial 和 ParNew GC 回收期中，晋升年龄阈值通过参数「MaxTenuringThreshold」设定
+
+### Java GC 日志可以通过 +PrintGCDetails开启
+
+### CMS 为了避免这个阶段没有等到 Minor GC 而陷入无限等待，提供了参数「CMSMaxAbortablePrecleanTime」，默认为 5s，含义是如果可中断的预清理执行超过5s，不管发没发生 Minor GC，都会中止此阶段，进入重新标记阶段。
+
+### CMS 提供 CMSScavengeBeforeRemark 参数，用来保证重新标记阶段之前强制进行一次 Minor GC。
+
+### 在启动时观察加载了哪个 Jar 包中的哪个类
+
+- -XX:_TraceClassLoading
+
 ## 新生代垃圾回收
 
 对象一般出生在 Eden 区，年轻代 GC 过程中，对象在 2 个幸存区之间移动，如果对象存活到适当的年龄，会被移动到老年代。当对象在老年代死亡时，就需要更高级别的 GC，更重量级的 GC 算法。

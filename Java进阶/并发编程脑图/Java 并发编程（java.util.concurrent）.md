@@ -4,6 +4,14 @@
 
 ### CountDownLatch，计数器工具类
 
+是一种灵活的闭锁实现，可以使一个或者多个线程等待一组事件发生。
+
+闭锁状态包括一个计数器，改计数器初始化为一个正数，表示需要等待的事件数量。
+
+countDown 方法递减计数器，表示有一个事件发生了，而 await 方法等待计数器到达 0，表示所有需要等待的事情都已经发生。
+
+如果计数器的值非零，那么 await 就会一直阻塞知道计数器的值为 0，或者等待的线程中断，或者等待超时。
+
 - 初始时需要指定一个计数器的大小，然后可被多个线程并发的实现减 1 操作，并在计数器为 0 后调用 await 方法的线程被唤醒，从而实现多线程间的协作。
 - 任务分为 N 个子线程去执行，state 也初始化为 N（注意 N 要与线程个数一致）。
 - 这 N 个子线程是并行执行的，每个子线程执行完后 countDown() 一次，state 会 CAS 减 1。
@@ -11,6 +19,10 @@
 - 实现 AQS 的共享 API
 
 ### CyclicBarrier，循环屏障式计数器
+
+适用于这样的情况：你希望创建一组任务，他们并行地执行工作，然后在进行下一个步骤之前等待，直至所有任务都完成。
+
+它使得所有的并行任务都将在栅栏出列队，因此可以一致的向前移动。这非常像 CountDownLatch，只是 CountDownLatch 是只触发一次的事件，而 CyclicBarrier 可以多次重用。
 
 - 可循环使用（Cyclic）的屏障（Barrier），通过它可以实现让一组线程到达一个屏障（也可以叫同步点）时被阻塞，直到最后一个线程到达屏障时，所有被屏障拦截的线程才会继续执行。
 - 与 CountDownLatch 的区别
@@ -22,7 +34,7 @@
 ### Semaphore，信号量
 
 - 用来控制同时访问特定资源的线程数量，它通过协调各个线程，以保证合理的使用公共资源。
-- 类似于 CountDownLatch，资源总量 state=permits，当 state>O 时就能获得锁，并将 state减 1。
+- 类似于 CountDownLatch，资源总量 state=permits，当 state>0 时就能获得锁，并将 state减 1。
 - 当 state=0 时只能等待其他线程释放锁，当释放锁时 state 加 1，其他等待线程又能获得这个锁。
 - 当 Semaphore 的 permits 定义为 1 时，就是互斥锁，当 permits > 1 就是共享锁。
 
@@ -71,12 +83,19 @@
 		- RunnableScheduledFuture
 		- FutureTask
 
+		  表示一个可以取消的异步运算。它有启动和取消运算、查询运算是否完成和取回运算结果等方法。只有当运算完成的时候结果才能取回，如果运算尚未完成 get 方法将会阻塞。
+		  
+		  一个 FutureTask 对象可以对调用了 Callable 和 Runnable 的对象进行包装，由于 FutureTask 也是调用了 Runnable 接口所以它可以提交给 Executor 来执行。
+
 			- 将一个 Callable 置为 FutureTask 的内置成员
 			- 执行 Callable 中的 call 方法
 			- 调用 futureTask.get(timeout, TimeUnit) 方法, 获取 call 的执行结果, 超时的话就报 TimeoutException
 
 	- ScheduledFuture
 	- ForkJoinTask
+	- CompletableFuture
+
+		- 在异步任务完成后，使用任务结果时就不需要等待，可以直接通过 thenAccept、thenApply、thenCompose 等方法将前面异步处理的结果交给另外一个异步事件处理线程来处理
 
 - Callable
 
@@ -261,7 +280,23 @@
 
 		- LinkedBlockingQueue
 
-			- 一个由链表结构组成的有界阻塞队列，使用独占锁实现
+			- 一个由链表结构组成的无界阻塞队列，使用独占锁 ReentrantLock 实现，这里边无界的概念是只要有内存就能一直存储元素
+			- 主要构成
+
+				- 两个 Node 分别用来存放首尾节点
+				- 初始值为 0 的原子变量 count 用来记录队列元素个数
+				- 两个ReentrantLock 的独占锁，分别用来控制元素入队和出队加锁，其中 takeLock 用来控制同时只有一个线程可以从队列获取元素，其他线程必须等待，putLock 控制同时只能有一个线程可以获取锁去添加元素，其他线程必须等待。
+				- 另外 notEmpty 和 notFull 用来实现入队和出队的同步。由于出入队是两个非公平独占锁，所以可以同时又一个线程入队和一个线程出队，其实这个是个生产者-消费者模型。
+
+			- 主要方法
+
+				- offer 操作-生产者，带超时间和不带
+				- put 操作-生产者
+				- poll 操作-消费者，带超时时间和不带
+				- take 操作-消费者
+				- size 操作
+				- peek 操作
+				- remove操作
 
 		- PriorityBlockingQueue
 
@@ -324,15 +359,120 @@
 		- 在 1.7 及以下，ConcurrentHashMap 使用的是数组加链表，Segment + ReentrantLock，锁分段
 		- 在 1.8 后，对 ConcurrentHashMap 做了一些调整
 
-			- 链表长度 >= 8时，链表会转换为红黑树，<= 8 时又会恢复成链表；
+			- 链表长度 >= 8时，链表会转换为红黑树，<= 6 时又会恢复成链表；
 			- 1.7 及以前，链表采用的是头插法，1.8 后改成了尾插法；
 			- Segment + ReentrantLock 改成了 CAS + synchronized。取消 Segment，直接利用 table 数组单元作为锁，实现了可对每行数据加锁，进一步提高了并发性能。
+			- 链表的长度超过了 8，那么链表将转换为红黑树。（桶的数量必须大于 64，小于 64 的时候只会扩容）
 
 		- 1.7 查询遍历链表效率太低，因此 1.8 做了一些数据结构上的调整，也将 1.7 中存放数据的 HashEntry 改为 Node，但作用都是相同的。
 
 	- ConcurrentNavigableMap
 
 		- ConcurrentSkipListMap
+
+	- HashMap &  ConcurrentHashMap
+
+		- HashMap（jdk1.7）
+
+			- 核心成员变量
+
+				- 初始桶大小----16，可自定义
+				- 桶最大值----2^30
+				- 负载因子----0.75，可自定义
+				- table----也就是俗话说的桶，整整存放数据的数组
+				- size----Map 存放元素的数量
+
+			- 方法
+
+				- put 方法
+
+					- 判断当前数组是否需要初始化。
+					- 如果 key 为空，则 put 一个空值进去。
+					- 根据 key 计算出 hashcode。
+					- 根据计算出的 hashcode 定位出所在桶。
+					- 如果桶是一个链表则需要遍历判断里面的 hashcode、key 是否和传入 key 相等，如果相等则进行覆盖，并返回原来的值。
+					- 如果桶是空的，说明当前位置没有数据存入；新增一个 Entry 对象写入当前位置。
+					- 当调用 addEntry 写入 Entry 时需要判断是否需要扩容。如果需要就进行两倍扩充，并将当前的 key 重新 hash 并定位。
+
+				- get 方法
+
+					- 首先也是根据 key 计算出 hashcode，然后定位到具体的桶中。
+					- 判断该位置是否为链表。
+					- 不是链表就根据 key、key 的 hashcode 是否相等来返回值。
+					- 为链表则需要遍历直到 key 及 hashcode 相等时候就返回值。
+					- 啥都没取到就直接返回 null 。
+
+		- HashMap（jdk1.8）
+
+			-  Hash 冲突严重时，在桶上形成的链表会变的越来越长，这样在查询时的效率就会越来越低；时间复杂度为 O(N)。
+			- 核心改进项
+
+				- TREEIFY_THRESHOLD 用于判断是否需要将链表转换为红黑树的阈值。
+				- HashEntry 修改为 Node。
+
+			- 方法
+
+				- put 方法
+
+					- 判断当前桶是否为空，空的就需要初始化（resize 中会判断是否进行初始化）。
+					- 根据当前 key 的 hashcode 定位到具体的桶中并判断是否为空，为空表明没有 Hash 冲突就直接在当前位置创建一个新桶即可。
+					- 如果当前桶有值（ Hash 冲突），那么就要比较当前桶中的 key、key 的 hashcode 与写入的 key 是否相等
+					- 如果当前桶为红黑树，那就要按照红黑树的方式写入数据。
+					- 如果是个链表，就需要将当前的 key、value 封装成一个新节点写入到当前桶的后面（形成链表）。
+					- 接着判断当前链表的大小是否大于预设的阈值，大于时就要转换为红黑树。
+					- 如果在遍历过程中找到 key 相同时直接退出遍历。存在相同的 key，那就需要将值覆盖。
+					- 最后判断是否需要进行扩容。
+
+				- get 方法
+
+					- 首先将 key hash 之后取得所定位的桶。
+					- 如果桶为空则直接返回 null 。
+					- 否则判断桶的第一个位置(有可能是链表、红黑树)的 key 是否为查询的 key，是就直接返回 value。
+					- 如果第一个不匹配，则判断它的下一个是红黑树还是链表。
+					- 红黑树就按照树的查找方式返回值。
+					- 不然就按照链表的方式遍历匹配返回值。
+
+		- HashMap 的缺陷（或者说为什么不是线程安全的）
+
+			- 并发场景下使用时容易出现死循环
+			- 多个线程进行扩容只会有一个成功，数据丢失
+
+		- ConcurrentHashMap（1.7）
+
+			- Segment 数组、HashEntry 组成，和 HashMap 一样，仍然是数组加链表。
+			- 采用了分段锁技术，其中 Segment 继承于 ReentrantLock。不会像 HashTable 那样不管是 put 还是 get 操作都需要做同步处理，理论上 ConcurrentHashMap 支持 CurrencyLevel (Segment 数组数量)的线程并发。每当一个线程占用锁访问一个 Segment 时，不会影响到其他的 Segment。
+			- 方法
+
+				- put 方法
+
+					- 将当前 Segment 中的 table 通过 key 的 hashcode 定位到 HashEntry。
+					- 遍历该 HashEntry，如果不为空则判断传入的 key 和当前遍历的 key 是否相等，相等则覆盖旧的 value。
+					- 不为空则需要新建一个 HashEntry 并加入到 Segment 中，同时会先判断是否需要扩容。
+					- 最后会解除所获取当前 Segment 的锁。
+
+				- get 方法
+
+					- 只需要将 Key 通过 Hash 之后定位到具体的 Segment ，再通过一次 Hash 定位到具体的元素上。
+
+		- ConcurrentHashMap（1.8）
+
+			- 解决查询遍历链表效率太低，抛弃了原有的 Segment 分段锁，而采用了 CAS + synchronized 来保证并发安全性。
+			- 方法
+
+				- put 方法
+
+					- 根据 key 计算出 hashcode 。
+					- 判断是否需要进行初始化。
+					- 利用 CAS 尝试写入，失败则自旋保证成功。
+					- 如果当前位置的 hashcode == MOVED == -1,则需要进行扩容。
+					- 如果都不满足，则利用 synchronized 锁写入数据。
+					- 如果数量大于 TREEIFY_THRESHOLD 则要转换为红黑树。
+
+				- get 方法
+
+					- 根据计算出来的 hashcode 寻址，如果就在桶上那么直接返回值。
+					- 如果是红黑树那就按照树的方式获取值。
+					- 不满足那就按照链表的方式遍历获取值。
 
 ## locks
 
@@ -432,6 +572,8 @@ fullyRelease
 ### Condition
 
 - 多线程间协调通信的工具类，使得某个或者某些线程一起等待某个条件（Condition）,只有当该条件具备( signal 或者 signalAll 方法被调用)时 ，这些等待线程才会被唤醒，从而重新争夺锁。
+- 两个 node 分别用来存放条件队列的首尾节点，条件队列就是调用条件变量的 await 方法被阻塞后的节点组成的单向链表。
+- ConditionObject 还要依赖 AQS 的 state，ConditionObject 是 AQS 类的一个内部类。
 
 ### Lock（接口）
 
@@ -591,4 +733,3 @@ fullyRelease
 
 	- JDK8 新增，高并发环境下比 AtomicLong 更高效
 
-*高老四博客 - glorze.com*

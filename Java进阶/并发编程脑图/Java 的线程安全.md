@@ -173,3 +173,37 @@
 
 - Thread.currentThread().isInterrupted()
 
+## Happen-Before 八大原则
+
+### 单线程 happen-before 原则
+
+- 在同一个线程中，书写在前面的操作 happen-before 后面的操作。
+
+### 锁的 happen-before 原则
+
+- 同一个锁的 unlock 操作 happen-before 此锁的 lock 操作。
+
+### volatile 的 happen-before 原则
+
+- 对一个 volatile 变量的写操作 happen-before对此变量的任意操作（也包括写操作）。
+
+### happen-before 的传递性原则
+
+- 如果 A 操作 happen-before B 操作，B 操作happen-before C 操作，那么 A 操作 happen-before C 操作。
+
+### 线程启动的 happen-before 原则
+
+- 同一个线程的 start 方法 happen-before 此线程的其它方法。
+
+### 线程中断的 happen-before 原则
+
+- 对线程 interrupt 方法的调用 happen-before 被中断线程的检测到中断发送的代码。
+
+### 线程终结的 happen-before 原则
+
+- 线程中的所有操作都 happen-before 线程的终止检测。
+
+### 对象创建的 happen-before 原则
+
+- 一个对象的初始化完成先于他的 finalize 方法调用。
+

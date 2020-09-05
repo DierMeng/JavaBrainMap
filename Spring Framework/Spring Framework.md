@@ -71,6 +71,12 @@
 
 按照一定的规则，将代码织入实现约定的流程当中。目的当然就是解耦、去重、服务增强。
 
+- 动态代理
+
+	- 当 Bean 有实现接口时，Spring 就会用 JDK 动态代理（JdkDynamicAopProxy）
+	- 当 Bean 没有实现接口时，Spring 会选择 CGLIB 代理（CglibAopProxy）
+	- Spring 可以通过配置强制使用 CGLIB 代理。
+
 - 核心概念
 
 	- 连接点（join point）
@@ -153,10 +159,21 @@
 
 		- 上述切点、各类通知以及引入的定义集，他们集体定义了面向切面编程。在软件开发中，散布于应用中多处的功能被称为横切关注点（cross-cutting concern），以何种方式在何处应用，而无需修改受影响的类。横切关注点可以被模块化为特殊的类，这些类被称为切面（aspect）。所以通知和切点是切面的最基本元秦。
 
-- 子主题 2
-- 子主题 3
-
 ### 控制反转（IoC）、依赖注入（DI）
+
+- 依赖注入的方式
+
+	- 构造器注入
+
+		- 采用反射的方式，通过使用构造方法来完成注入
+
+	- Setter 方法注入
+
+		- 消除了使用构造器注入时出现多个参数的可能性，首先可以把构造方法声明为无参数的，然后使用 setter 注入为其设置对应的值，也是通过 Java 反射技术得以现实。
+
+	- 接口注入
+
+		- 资源并非来自于自身系统，而是来自于外界，通过 JNDI 等形式去获取它，采用接口注入。
 
 ### Spring 管理 Bean 相关知识总结
 
@@ -204,9 +221,6 @@
 
 - bean 的高级装配
 
-	- 子主题 1
-	- 子主题 1
-	- 子主题 1
 	- bean 的作用域
 
 		- 默认 bean 都是单例创建，不管一个 bean 被注入多少次都是同一个。
@@ -238,23 +252,48 @@
 
 						- bean 类型是具体的类，表明要以生成目标类扩展的方式创建代理。
 
-		- 子主题 1
-		- 子主题 1
 		- 会话和请求作用域
-		- 子主题 1
 
-	- 子主题 1
-	- 子主题 1
+- Spring Bean 结合源码理解生命周期（图解见当前目录下的「Spring Bean 生命周期图解」）
 
-- 子主题 1
-- 子主题 1
+	- 获取 Bean 
+
+		- 先处理 Bean 的名称，因为如果以「&」开头的 Bean 名称表示获取的是对应的 FactoryBean 对象；
+		- 从缓存中获取单例 Bean，有则进一步判断这个 Bean 是不是在创建中，如果是的就等待创建完毕，否则直接返回这个 Bean 对象
+		- 如果不存在单例 Bean 缓存，则先进行循环依赖的解析
+		- 解析完毕之后先获取父类 BeanFactory，获取到了则调用父类的 getBean 方法，不存在则先合并然后创建 Bean
+
+	- 创建 Bean
+
+		- 创建 Bean 之前
+
+			- 先获取 RootBeanDefinition 对象中的 Class 对象并确保已经关联了要创建的 Bean 的 Class 。
+			- 检查 3 个条件
+
+				- Bean 的属性中的  beforeInstantiationResolved 字段是否为 true，默认是 false。
+				- Bean 是否是原生的 Bean
+				- Bean 的  hasInstantiationAwareBeanPostProcessors 属性为 true，这个属性在 Spring 准备刷新容器前转为 BeanPostProcessors 的时候会设置，如果当前 Bean 实现了 InstantiationAwareBeanPostProcessor 则这个就会是 true。
+				- 当三个条件都存在的时候，就会调用实现的 InstantiationAwareBeanPostProcessor 接口的 postProcessBeforeInstantiation 方法，然后获取返回的 Bean，如果返回的 Bean 不是 null 还会调用实现的 BeanPostProcessor 接口的 postProcessAfterInitialization 方法
+
+		- 真正的创建 Bean（doCreateBean）
+
+			- 先检查 instanceWrapper 变量是不是 null，这里一般是 null，除非当前正在创建的 Bean 在  factoryBeanInstanceCache 中存在的是保存还没创建完成的 FactoryBean 的集合。
+			- 调用 createBeanInstance 方法实例化 Bean
+			- 如果当前 RootBeanDefinition 对象还没有调用过实现了的   MergedBeanDefinitionPostProcessor 接口的方法，则会进行调用 。
+			- 当满足三点
+
+				- 是单例 Bean
+				- 尝试解析 Bean 之间的循环引用
+				- Bean 目前正在创建中
+				- 会进一步检查是否实现了  SmartInstantiationAwareBeanPostProcessor 接口，如果实现了则调用是实现的  getEarlyBeanReference 方法
+
+			- 调用 populateBean 方法进行属性填充
+			- 调用 initializeBean 方法对 Bean 进行初始化
+
+	- destory 方法销毁 Bean
 
 ### 缓存数据
 
-- 子主题 1
-- 子主题 1
-- 子主题 1
-- 子主题 1
 - 循环依赖
 
 	- spring单例对象的初始化
@@ -369,4 +408,17 @@
 
 	- FlashMap retrieveAndUpdate(HttpServletRequest request, HttpServletResponse response);用于恢复参数，并将回复过的和超时的参数从保存介质中删除
 	- void saveOutputFlashMap(FlashMap flashMap, HttpServletRequest request, HttpServletResponse response);将参数保存。
+
+### DispatcherServlet
+
+- load-on-startup
+
+	- 标记容器是否在启动的时候就加载这个servlet（实例化并调用其 init() 方法）。
+	- 值必须是一个整数，表示 servlet 应该被载入的顺序
+	- 值为 0 或者大于 0 时，表示容器在应用启动时就加载并初始化这个 servlet；
+	- 值小于 0 或者没有指定时，则表示容器在该 servlet 被选择时才会去加载。
+	- 正数的值越小，该 servlet 的优先级越高，应用启动时就越先加载。
+	- 值相同时，容器就会自己选择顺序来加载。所以 load-on-startup 代表的是优先级，而非启动延迟时间。
+
+## 自由主题
 

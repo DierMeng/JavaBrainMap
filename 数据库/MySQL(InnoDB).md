@@ -104,17 +104,74 @@
 
   事务结束后，所有的数据会固化到一个地方，如保存到磁盘当中，即使断电重启后也可以提供给应用程序访问。
 
+- 底层实现
+
+	- 利用 undo log 保证原子性
+	- 利用 redo log 保证持久性
+	- 利用锁和 MVCC 机制保证隔离性
+	- 通过原子性、持久性、隔离性来保证一致性
+
 ### 事务的底层日志
 
 - undo log
 
 	- undo log 是回滚日志，提供回滚操作。
 	- undo 用来回滚行记录到某个版本。undo log 一般是逻辑日志，根据每行记录进行记录。
+	- 主要用来主从复制和恢复数据用。
 
 - redo log
 
 	- redo log 是重做日志，提供前滚操作
 	- redo log 通常是物理日志，记录的是数据页的物理修改，而不是某一行或某几行修改成怎样怎样，它用来恢复提交后的物理数据页(恢复数据页，且只能恢复到最后一次提交的位置)。
+
+- MySQL 如何解决 undo log 和 redo log 的原子一致性
+
+	- MySQL 的内部 XA 事务，即两阶段提交
+
+		- prepare：写入redo log，并将回滚段置为 prepared 状态，此时 binlog 不做操作。
+		- commit：InnoDB 释放锁，释放回滚段，设置提交状态，写入 binlog，然后存储引擎层提交。
+
+- MySQL 崩溃恢复
+
+	- 扫描最后一个 Binlog 文件，提取其中的 xid；
+	- InnoDB 维持了状态为 Prepare 的事务链表，将这些事务的 xid 和 binlog 中记录的 xid 做比较，如果在 binlog 中存在，则提交，否则回滚事务。
+
+### 大事务（长时间执行的事务）的解决方案
+
+- 带来的问题
+
+	- 造成大量的阻塞和锁超时，容易造成主从延迟
+	- 大事务如果执行失败，回滚也会很耗时
+
+- 排查大事务的方式
+
+	- 监控 information_schema.Innodb_trx 表，设置长事务阈值，超过就报警或者杀进程
+	- select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx_started))>60;
+	- 生产中，会将监控大事务的语句，配成定时脚本，进行监控。
+
+- 结合业务场景，优化 SQL，将一个大事务拆成多个小事务执行，或者缩短事务执行时间即可。
+
+### 数据库宕机重启，事务丢失的情况
+
+- innodb_flush_log_at_trx_commit & sync_binlog
+
+	- 默认值为 1 & 0
+
+		- 每次事务提交时都将 redo log 直接持久化到磁盘.但是MySQL不控制binlog的刷新，由操作系统自己控制它的缓存的刷新。
+		- 一旦系统宕机，在 binlog_cache 中的所有 binlog 信息都会被丢失。
+
+	- 双 1 配置
+
+		- 每次事务提交时都将 redolog 直接持久化到磁盘，binlog 也会持久化到磁盘。
+		- 性能是最差的，适合金融系统
+
+	- 2 & 0 配置
+
+		- 每次事务提交时，只是把 redolog 写到 OS cache，隔一秒，MySQL 主动将 OS cache 中的数据批量 fsync。
+		- 一旦系统宕机，在 binlog_cache 中的所有 binlog 信息都会被丢失。
+		- 相对性能最好的一套配置
+
+	- 子主题 4
 
 ## 锁
 
@@ -150,13 +207,17 @@
 不能读取未提交的数据。
 - 幻读的意思其实就是读写提交会产生不可重复读的问题
 
-### 可重复读（Repeatable Read，RR）
+### 可重复读（Repeatable Read，RR）（默认的隔离级别）
 
 - 字面的意思就是必须等上一个事务提交才能进行当前事务的读取操作，保证数据正确性。
 - RR 隔离级别保证对读取到的记录加锁 (记录锁)，同时保证对读取的范围加锁，新的满足查询条件的记录不能够插入 (间隙锁)，不存在幻读现象。
 
 
 - 在这里里面也有一个「幻读」的概念，不过可重复读产生幻读的现象不属于数据库存储的值，多半是统计值或者计算值。
+- 底层实现
+
+	- 利用间隙锁，防止幻读的出现，保证了可重复读
+	- MVCC 的快照生成时机不同
 
 ### 串行化（Serializable）
 
@@ -206,4 +267,19 @@
 
 - 堆表：无序存储
 - 聚簇索引表：按照主键顺序存储
+
+### MySQL 大表分页
+
+- 分页查询
+
+	- select * from order where user_id = xxx and 【其它业务条件】 order by created_time, id limit offset, pageSize
+
+		- 定位到 offset 的成本过高，未能充分利用索引的有序性
+
+	- select * from order where id > 'pre max id' order by id limit 50
+	- 行比较
+
+		- select * from order where user_id = xxx and 【其它业务条件】 and (created_time > 'created_time of latest recode' or (created_time = 'created_time of latest recode' and id > 'id of latest recode'))  order by created_time, id limit pageSize
+
+- 索引（b+ tree）的特点在于，数据是有序的，虽然找到第 N 条记录的效率比较低，但找到某一条数据在索引中的位置，其效率是很高的
 

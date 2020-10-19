@@ -9,7 +9,7 @@
 	- 统一编程模型，JDBC、Hibernate、JPA
 	- 支持声明式事务（注解常用（Transactional）、xml）
 
-		- @Transactional 失效的场景
+		- @Transactional 失效的场景，Spring 事务失效的场景
 
 			- 方法不是 public 的
 
@@ -27,14 +27,19 @@
 				- Spring 事务默认 runtimeException 异常或者 Error 才回滚
 				- 如果想自己指定异常类型进行回滚，需要使用 rollbackFor 指定异常类型
 
+					- @Transactional(rollbackFor = Exception.class)
+
+			- 自调用
+
 	- 编程式事务（TransactionTemplate）
 	- 对spring数据层的完美抽象
 
 - 传播性（TransactionDefinition）
 
-	- PROPAGATION_REQUIRED
+	- PROPAGATION_REQUIRED（默认）
 
 		- 如果当前没有事务，就新建一个事务，如果已经存在一个事务中，加入到这个事务中
+		- 默认情况下只有一个事务
 
 	- PROPAGATION_REQUIRES_NEW
 
@@ -62,10 +67,15 @@
 
 - 隔离级别
 
-	- 子主题 1
-	- 子主题 2
-	- 子主题 3
-	- 子主题 4
+	- read uncommitted（未提交读）
+	- read committed（提交读、不可重复读）
+	- repeatable read（可重复读）
+	- serializable（可串行化）
+	- Spring 在此基础上抽象出一种隔离级别为default，表示以数据库默认配置的为主。
+
+		- MySQL默认的事务隔离级别为 repeatable-read。
+		- Oracle 默认隔离级别为读已提交。
+		- 当数据库的隔离级别与 Spring 的隔离级别配置不一致的时候，以 Spring 为准，如果 Spring 的隔离级别对应数据库不支持，那么数据库的隔离级别生效
 
 ### AOP
 
@@ -169,7 +179,7 @@
 
 	- Setter 方法注入
 
-		- 消除了使用构造器注入时出现多个参数的可能性，首先可以把构造方法声明为无参数的，然后使用 setter 注入为其设置对应的值，也是通过 Java 反射技术得以现实。
+		- 消除了使用构造器注入时出现多个参数的可能性，首先可以把构造方法声明为无参数的，然后使用 setter 注入为其设置对应的值，也是通过 Java 反射技术得以实现。
 
 	- 接口注入
 
@@ -335,7 +345,191 @@
 
 		- 对于「prototype」作用域的 bean，Spring 容器无法完成依赖注入，因为 Spring 容器不进行缓存「prototype」作用域的 bean，因此无法提前暴露一个创建中的 bean 。
 
+### Spring/Spring MVC 注解大全
+
+- Spring
+
+	- 声明 Bean 的注解
+
+		- @Component
+
+			- 元注解，可以标注在其它的注解上。
+			- 任何被「@Component」注解标识的组件均为组件扫描的候选对象
+			- 被「@Component」元注解标注的注解，在任何组件标注它时，也被视作组件扫描的候选对象。
+			- 总之被标注之后,要作为候选组件被添加到 Spring 容器当中
+
+		- @Service
+
+			- 业务逻辑层使用（service层）
+
+		- @Repository
+
+			- 数据访问层使用（dao层）
+
+		- @Controller
+
+			- 声明该类为 SpringMVC 中的 Controller（控制器）
+
+	- 注入 Bean 的注解
+
+		- @Autowired
+
+			- 对于属性（推荐）、Setter、构造均可以使用 byType 的形式注入
+			- 默认情况下它要求依赖对象必须存在，如果允许 null 值，可以设置它的 required 属性为 false
+			- @Qualifier
+
+				- 可以曲线将「@Autowired」按照名称（byName）来装配，通过类型匹配找到多个 Bean 实例，然后再根据 @Qualifier 找到对应的 Bean 进行注入
+
+			- @Primary
+
+				- 优先考虑，优先考虑被注解的对象注入
+
+		- @Resource
+
+			- 同「@Autowired」，可以直接在属性、Setter 上（推荐）直接进行注入
+			- 不同于「@Autowired」，@Resource 默认以 byName 的形式进行注入
+
+				- @Resource 既有 byName 也有 byType，有哪个用哪个，没有默认使用 baName
+
+			- 不属于 Spring 的注解，隶属于 javax.annotation，只不过 Spring 支持该注解
+
+		- @Inject
+
+			- 同 @Autowired
+			- 注入优先级
+
+				- 类型匹配（Match by Type）
+				- 限定符匹配（Match by Qualifier）
+				- 命名匹配（Match by Name）
+
+	- Bean 的属性相关注解
+
+		- @Value
+
+			- 字段或方法/构造函数参数级别的注释，表示受影响参数的默认值
+
+	- 配置类注解
+
+		- @Configuration
+
+			- 用于定义配置类，可替换 xml 配置文件，被注解的类内部包含有一个或多个被 @Bean 注解的方法，用于构建bean定义，初始化 Spring 容器。
+
+		- @Bean
+
+			- 注解在方法上，声明当前方法的返回值为一个 bean，替代 xml 中的方式
+
+		- @ComponentScan
+
+			- 用于对 Component 进行扫描
+
+		- @WishlyConfiguration
+
+			- 为 @Configuration 与 @ComponentScan 的组合注解
+
+		- @PropertySource
+
+			- 提供了一个方便的声明机制，用于添加一个 PropertySource 到 Spring 的环境中，与 @Configuration 一起使用。
+
+	- AOP 切面相关注解
+
+		- @Aspect
+
+			- 把当前类标识为一个切面类供容器读取。
+
+		- @Before
+
+			- 标识一个前置增强方法，相当于 BeforeAdvice 的功能。
+
+		- @After
+
+			- 不管是抛出异常或者正常退出都会执行。
+
+		- @Around
+
+			- 环绕增强，相当于 MethodInterceptor。
+
+		- @PointCut
+
+			- 声明一个切入点。
+
+		- @EnableAspectJAutoProxy
+
+			- 支持处理使用AspectJ
+
+	- 事务相关
+
+		- @Transactional
+
+			- 描述方法或类的事务属性。
+
+	- 缓存
+
+		- 可以缓存调用方法（或类中的所有方法）的结果。
+
+	- 环境切换及单测
+
+		- @Profile
+
+			- 表示当一个或多个指定的文件处于活动状态时，这个组件是有资格注册的。使用 @Profile 注解类或者方法，达到在不同情况下选择实例化不同 的 Bean。
+
+		- @Conditional
+
+			- 表示只有在所有指定条件匹配时，组件才有资格进行注册。
+
+		- @RunWith
+
+			- JUnit 用例都是在 Runner（运行器）来执行的。通过它，可以为这个测试类指定一个特定的 Runner。
+
+		- @ContextConfiguration
+
+			- 定义 class 级元数据，用于确定如何加载和配置 ApplicationContext 集成测试。
+
+		- @ActiveProfiles
+
+			- class 级别注释，用于声明在加载  ApplicationContext 来测试时应使用哪些活动 Bean 定义配置文件。
+
+	- 同步异步
+
+		- @EnableAsync
+
+			- 启用Spring的异步方法执行功能
+			- 要与 @Configuration 一起使用。
+
+		- @Async
+
+			- 将方法标记为异步执行候选的注释。也可以在 class 级别使用，在这种情况下，所有类型的方法都被视为异步。
+
+	- 定时相关
+
+		- @EnableScheduling
+
+			- 启用 Spring 的计划任务执行功能，要和 @Configuration 一同使用。
+
+		- @Scheduled
+
+			- 用于标记一个需要定期执行的方法。
+
+- Spring MVC
+
+	- @Controller
+
+		- 声明该类为 SpringMVC 中的 Controller（控制器）
+
+	- @PostConstruct
+
+		- 在服务器加载 Servlet 的时候运行，并且只会被服务器执行一次。PostConstruct 在构造函数之后执行，init() 方法之前执行。
+
+	- @PreDestroy
+
+		- 在 destroy() 方法之后执行。
+
+	- @EnableWebMvc
+
+		- 将此注释添加到带有 @Configuration 的类中会从 WebMvcConfigurationSupport 中导入 Spring MVC 配置。
+
 ## Spring Boot
+
+### 注解大全
 
 ## Spring Cloud
 
@@ -420,5 +614,37 @@
 	- 正数的值越小，该 servlet 的优先级越高，应用启动时就越先加载。
 	- 值相同时，容器就会自己选择顺序来加载。所以 load-on-startup 代表的是优先级，而非启动延迟时间。
 
-## 自由主题
+## Spring 结构
+
+### Data Access/Integration，数据访问、集成
+
+- JDBC
+- ORM
+- OXM
+- JMS
+- Transactions
+
+### Web
+
+- WebSocket
+- Servlet
+- Web
+- portlet
+
+### Core Container
+
+- Beans
+- Core
+- Context
+- SpEL
+
+### AOP
+
+### Aspects
+
+### Instrumentation
+
+### Messaging
+
+### Test
 

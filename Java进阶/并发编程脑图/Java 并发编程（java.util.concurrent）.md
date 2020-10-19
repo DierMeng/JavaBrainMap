@@ -4,14 +4,6 @@
 
 ### CountDownLatch，计数器工具类
 
-是一种灵活的闭锁实现，可以使一个或者多个线程等待一组事件发生。
-
-闭锁状态包括一个计数器，改计数器初始化为一个正数，表示需要等待的事件数量。
-
-countDown 方法递减计数器，表示有一个事件发生了，而 await 方法等待计数器到达 0，表示所有需要等待的事情都已经发生。
-
-如果计数器的值非零，那么 await 就会一直阻塞知道计数器的值为 0，或者等待的线程中断，或者等待超时。
-
 - 初始时需要指定一个计数器的大小，然后可被多个线程并发的实现减 1 操作，并在计数器为 0 后调用 await 方法的线程被唤醒，从而实现多线程间的协作。
 - 任务分为 N 个子线程去执行，state 也初始化为 N（注意 N 要与线程个数一致）。
 - 这 N 个子线程是并行执行的，每个子线程执行完后 countDown() 一次，state 会 CAS 减 1。
@@ -19,10 +11,6 @@ countDown 方法递减计数器，表示有一个事件发生了，而 await 方
 - 实现 AQS 的共享 API
 
 ### CyclicBarrier，循环屏障式计数器
-
-适用于这样的情况：你希望创建一组任务，他们并行地执行工作，然后在进行下一个步骤之前等待，直至所有任务都完成。
-
-它使得所有的并行任务都将在栅栏出列队，因此可以一致的向前移动。这非常像 CountDownLatch，只是 CountDownLatch 是只触发一次的事件，而 CyclicBarrier 可以多次重用。
 
 - 可循环使用（Cyclic）的屏障（Barrier），通过它可以实现让一组线程到达一个屏障（也可以叫同步点）时被阻塞，直到最后一个线程到达屏障时，所有被屏障拦截的线程才会继续执行。
 - 与 CountDownLatch 的区别
@@ -80,12 +68,14 @@ countDown 方法递减计数器，表示有一个事件发生了，而 await 方
 	- 代表异步计算的结果，通过 Future 接口提供的方法可以查看异步计算是否执行完成，或者等待执行结果并获取执行结果，同时还可以取消执行。
 	- RunnableFuture
 
+		- RunnableFuture 继承了 Runnable 接口和 Future 接口
 		- RunnableScheduledFuture
 		- FutureTask
 
-		  表示一个可以取消的异步运算。它有启动和取消运算、查询运算是否完成和取回运算结果等方法。只有当运算完成的时候结果才能取回，如果运算尚未完成 get 方法将会阻塞。
-		  
-		  一个 FutureTask 对象可以对调用了 Callable 和 Runnable 的对象进行包装，由于 FutureTask 也是调用了 Runnable 接口所以它可以提交给 Executor 来执行。
+			- 事实上，FutureTask 是 Future 接口的一个唯一实现类。
+
+				- FutureTask(Callable<V> callable)
+				- FutureTask(Runnable runnable, V result)
 
 			- 将一个 Callable 置为 FutureTask 的内置成员
 			- 执行 Callable 中的 call 方法
@@ -97,10 +87,41 @@ countDown 方法递减计数器，表示有一个事件发生了，而 await 方
 
 		- 在异步任务完成后，使用任务结果时就不需要等待，可以直接通过 thenAccept、thenApply、thenCompose 等方法将前面异步处理的结果交给另外一个异步事件处理线程来处理
 
+	- 声明的方法
+
+		- cancel(boolean mayInterruptIfRunning);
+
+			- 用来取消异步任务的执行。
+			- 如果异步任务已经完成或者已经被取消，或者由于某些原因不能取消，则会返回 false。
+			- 如果任务还没有被执行，则会返回 true 并且异步任务不会被执行。
+			- 如果任务已经开始执行了但是还没有执行完成，若 mayInterruptIfRunning 为 true，则会立即中断执行任务的线程并返回 true
+			- 若 mayInterruptIfRunning 为 false，则会返回 true 且不会中断任务执行线程。
+
+		- isCancelled();
+
+			- 判断任务是否被取消，如果任务在结束（正常执行结束或者执行异常结束）前被取消则返回 true，否则返回 false。
+
+		- isDone();
+
+			- 任务执行过程中发生异常、任务被取消也属于任务已完成，也会返回 true。
+			- 返回计算是否完成 , 若任务完成则返回 true (任务完成 state = narmal, exception, interrupted)
+
+		- V get()
+
+			- 获取计算的结果, 若计算没完成, 直接 await, 直到计算结束或线程中断
+			- 获取任务执行结果，如果任务还没完成则会阻塞等待直到任务执行完成。
+			- 如果任务被取消则会抛出 CancellationException 异常，如果任务执行过程发生异常则会抛出 ExecutionException 异常
+			- 如果阻塞等待过程中被中断则会抛出 InterruptedException 异常。
+
+		- V get(long timeout, TimeUnit unit)
+
+			- 获取计算的结果, 若计算没完成, 直接 await, 直到计算结束或线程中断或 time 时间超时
+
 - Callable
 
 	- 是个泛型接口，泛型 V 就是要 call() 方法返回的类型。
 	- Callable 接口和 Runnable 接口很像，都可以被另外一个线程执行，但是 Runnable 不会返回数据也不能抛出异常。
+	- Callable 一般是和 ExecutorService 配合来使用的
 
 - Executor，接口，只有一个「void execute(Runnable command);」方法 
 
@@ -108,7 +129,68 @@ countDown 方法递减计数器，表示有一个事件发生了，而 await 方
 
 		- AbstractExecutorService，抽象类，主要是实现 ExecutorService 接口生命的任务提交等方法
 
-			- ThreadPoolExecutor
+			- ThreadPoolExecutor，创建一个线程池
+
+				- 构造方法参数
+
+					- corePoolSize（常驻核心线程数）
+
+						- 如果当前运行的线程少于 corePoolSize（常驻核心线程数），则创建新线程来执行任务（注意，执行这一步骤需要获取全局锁）
+
+					- runnableTaskQueue
+
+						- 用于保存等待执行的任务的阻塞队列
+
+							- ArrayBlockingQueue：是一个基于数组结构的有界阻塞队列，此队列按 FIFO（先进先出）原则对元素进行排序。
+							- LinkedBlockingQueue：一个基于链表结构的阻塞队列，此队列按 FIFO （先进先出） 排序元素，吞吐量通常要高于 ArrayBlockingQueue。静态工厂方法 Executors.newFixedThreadPool() 使用了这个队列。
+							- SynchronousQueue：一个不存储元素的阻塞队列。每个插入操作必须等到另一个线程调用移除操作，否则插入操作一直处于阻塞状态，吞吐量通常要高于 LinkedBlockingQueue，静态工厂方法 Executors.newCachedThreadPool 使用了这个队列。
+							- PriorityBlockingQueue：一个具有优先级的无限阻塞队列。
+
+					- maximumPoolSize
+
+						- 如果队列已满，则创建新的线程来处理任务（注意，执行这一步骤需要获取全局锁）
+
+					- ThreadFactory
+
+						- 用于设置创建线程的工厂，可以通过线程工厂给每个创建出来的线程设置更有意义的名字
+
+					- RejectedExecutionHandler
+
+						- 当队列和线程池都满了，说明线程池处于饱和状态，那么必须采取一种策略处理提交的新任务。
+
+							- AbortPolicy：直接抛出异常。
+							- DiscardPolicy：不处理，丢弃掉。
+							- DiscardOldestPolicy：丢弃队列里最近的一个任务，并执行当前任务。
+							- CallerRunsPolicy：只用调用者所在线程来运行任务。
+							- 自定义实现 RejectedExecutionHandler 接口
+
+					- keepAliveTime
+
+						- 线程池的工作线程空闲后，保持存活的时间。
+
+				- 任务提交
+
+					- 使用 execute 提交的任务（Runnable），但是 execute 方法没有返回值，所以无法判断任务知否被线程池执行成功
+					- 使用 submit 方法来提交任务，它会返回一个 Future，可以通过这个 Future 来判断任务是否执行成功，通过 Future 的 get 方法来获取返回值，get 方法会阻塞住直到任务完成
+
+				- 线程池的关闭
+
+					- shutdown
+
+						- 只是将线程池的状态设置成SHUTDOWN状态，然后中断所有没有正在执行任务的线程。
+
+					- shutdownNow
+
+						- 遍历线程池中的工作线程，然后逐个调用线程的interrupt方法来中断线程，所以无法响应中断的任务可能永远无法终止。
+
+				- 线程池数据监控
+
+					- taskCount：线程池需要执行的任务数量。
+					- completedTaskCount：线程池在运行过程中已完成的任务数量。小于或等于taskCount。
+					- largestPoolSize：线程池曾经创建过的最大线程数量。通过这个数据可以知道线程池是否满过。如等于线程池的最大大小，则表示线程池曾经满了。
+					- getPoolSize:线程池的线程数量。如果线程池不销毁的话，池里的线程不会自动销毁，所以这个大小只增不减。
+					- getActiveCount：获取活动的线程数。
+
 			- ForkJoinPool，分而治之，工作窃取
 
 			  老四之前在博客中写过关于 Fork/Join 框架的一片文章，可以参考《浅析Java中的Fork和Join并发编程框架》。http://www.glorze.com/792.html
@@ -732,4 +814,92 @@ fullyRelease
 - LongAdder
 
 	- JDK8 新增，高并发环境下比 AtomicLong 更高效
+
+## 关键字总结
+
+### volatile
+
+- 变量可见性问题
+
+  在一个多线程的应用中，线程在操作非 volatile 变量时，出于性能考虑，每个线程可能会将变量从主存拷贝到 CPU 缓存中。如果你的计算机有多个 CPU，每个线程可能会在不同的 CPU 中运行。这意味着，每个线程都有可能会把变量拷贝到各自 CPU 的缓存中。
+  
+  对于非 volatile 变量，JVM 并不保证会从主存中读取数据到 CPU 缓存，或者将 CPU 缓存中的数据写到主存中。
+
+	- volatile 关键字就是设计用来解决变量可见性问题。将变量声明为 volatile，则在写入变量时，也会同时将变量值写入到主存中。同样的，在读取变量值时，也会直接从主存中读取。
+
+- 完整的 volatile 可见性保证
+
+	- 如果线程 A 写入一个 volatile 变量，线程 B 随后读取了同样的 volatile 变量，则线程 A 在写入 volatile 变量之前的所有可见的变量值，在线程 B 读取 volatile 变量后也同样是可见的。
+	- 如果线程A读取一个volatile变量，那么线程A中所有可见的变量也会同样从主存重新读取。
+
+- 指令重排序问题
+
+	- volatile 可以保证 Happens-Before 原则
+
+- volatile 不能保证原子性
+
+	- 多个线程都能写入共享的 volatile 变量，主存中也能存储正确的变量值，然而这有一个前提，变量新值的写入不能依赖于变量的旧值。换句话说，就是一个线程写入一个共享 volatile 变量值时，不需要先读取变量值，然后以此来计算出新的值。
+	- 如果线程需要先读取一个 volatile 变量的值，以此来计算出一个新的值，那么 volatile 变量就不足够保证正确的可见性。
+
+### synchronized
+
+- CAS
+
+	- Compare and Swap，比较并设置。用于在硬件层面上提供原子性操作。在 Intel 处理器中，比较并交换通过指令 cmpxchg实现。比较是否和给定的数值一致，如果一致则修改，不一致则不修改。
+
+- Java中的每一个对象都可以作为锁
+
+	- 对于同步方法，锁是当前实例对象。
+	- 对于静态同步方法，锁是当前对象的Class对象。
+	- 对于同步方法块，锁是 synchonized 括号里配置的对象。
+
+- synchronized 同步的原理
+
+	- JVM 基于进入和退出 Monitor 对象来实现方法同步和代码块同步，使用 monitorenter 和 monitorexit 指令实现，monitorenter 指令是在编译后插入到同步代码块的开始位置，而 monitorexit 是插入到方法结束处和异常处， JVM 要保证每个 monitorenter 必须有对应的 monitorexit 与之配对
+	- 任何对象都有一个 monitor 与之关联，当且一个 monitor 被持有后，它将处于锁定状态。线程执行到 monitorenter 指令时，将会尝试获取对象所对应的 monitor 的所有权，即尝试获得对象的锁。
+
+- Java 对象头
+
+	- Mark Word（存储对象的 hashCode 或锁信息等）
+
+		- 锁状态（默认无锁）
+		- 对象的 hashCode（25位）
+		- 对象分代年龄（4位）
+		- 是否是偏向锁（1位）
+		- 锁标志位（2位）
+
+			- 在运行期间 Mark Word 里存储的数据会随着锁标志位的变化而变化
+
+				- https://pic.downk.cc/item/5eec6f1314195aa594e6dc17.png
+
+	- Class Metadata Address
+
+		- 存储到对象类型数据的指针
+
+	- Array length
+
+		- 数组的长度（如果当前对象是数组）
+
+- 锁的升级，只能升级不能降级
+
+	- 无锁
+	- 偏向锁
+
+		- 大多数情况下锁不仅不存在多线程竞争，而且总是由同一线程多次获得，为了让线程获得锁的代价更低而引入了偏向锁
+		- 优点：加锁和解锁不需要额外的消耗，和执行非同步方法比仅存在纳秒级的差距。
+缺点：如果线程间存在锁竞争，会带来额外的锁撤销的消耗。
+适用场景：适用于只有一个线程访问同步块场景。
+
+	- 轻量级锁
+
+		- 线程在执行同步块之前，JVM 会先在当前线程的栈桢中创建用于存储锁记录的空间，并将对象头中的 Mark Word 复制到锁记录中。然后线程尝试使用 CAS 将对象头中的 Mark Word 替换为指向锁记录的指针。如果成功，当前线程获得锁，如果失败，表示其他线程竞争锁，当前线程便尝试使用自旋来获取锁。
+		- 优点：竞争的线程不会阻塞，提高了程序的响应速度。
+缺点：如果始终得不到锁竞争的线程使用自旋会消耗 CPU。
+适用场景：追求响应时间；同步块执行速度非常快；
+
+	- 重量级锁
+
+		- 优点：线程竞争不使用自旋，不会消耗CPU。
+缺点：线程阻塞，响应时间缓慢。
+适用场景：追求吞吐量；同步块执行速度较长；
 

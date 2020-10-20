@@ -85,7 +85,20 @@
 	- ForkJoinTask
 	- CompletableFuture
 
+		- 使用 Future 获得异步执行结果时，要么调用阻塞方法 get()，要么轮询看 isDone() 是否为 true，这两种方法都不是很好，因为主线程也会被迫等待。
+		- CompletableFuture，它针对 Future 做了改进，可以传入回调对象，当异步任务完成或者发生异常时，自动调用回调对象的回调方法。
 		- 在异步任务完成后，使用任务结果时就不需要等待，可以直接通过 thenAccept、thenApply、thenCompose 等方法将前面异步处理的结果交给另外一个异步事件处理线程来处理
+		- CompletableFuture 更强大的功能是，多个 CompletableFuture 可以串行执行，也可以并行执行
+		- 内置方法声明规则
+
+			- xxx()：表示该方法将继续在已有的线程中执行；
+			- xxxAsync()：表示将异步在线程池中执行。
+			- 主要方法
+
+				- thenAccept() 处理正常结果
+				- exceptional() 处理异常结果；
+				- thenApplyAsync() 用于串行化另一个 CompletableFuture；
+				- anyOf() 和 allOf() 用于并行化多个 CompletableFuture。
 
 	- 声明的方法
 
@@ -353,13 +366,6 @@
 			- 通过使用全局独占锁实现同时只能有一个线程进行入队或者出队操作，这个锁的粒度比较大，有点类似在方法上添加synchronized的意味。
 			- 另外相比 LinkedBlockingQueue、ArrayBlockingQueue的size 操作的结果是精确的，因为计算前加了全局锁。
 
-		- DelayQueue
-
-			- 一个使用优先级队列实现的无界阻塞队列
-			- DelayQueue 队列中每个元素都有个过期时间，并且队列是个优先级队列，当从队列获取元素时候，只有过期元素才会出队列。
-			- 内部使用的是 PriorityQueue 存放数据，使用 ReentrantLock 实现线程同步，所以是阻塞队列。
-			- 队列里面的元素要实现 Delayed 接口，一个是获取当前剩余时间的接口，一个是元素比较的接口，因为是有优先级的队列。
-
 		- LinkedBlockingQueue
 
 			- 一个由链表结构组成的无界阻塞队列，使用独占锁 ReentrantLock 实现，这里边无界的概念是只要有内存就能一直存储元素
@@ -368,7 +374,7 @@
 				- 两个 Node 分别用来存放首尾节点
 				- 初始值为 0 的原子变量 count 用来记录队列元素个数
 				- 两个ReentrantLock 的独占锁，分别用来控制元素入队和出队加锁，其中 takeLock 用来控制同时只有一个线程可以从队列获取元素，其他线程必须等待，putLock 控制同时只能有一个线程可以获取锁去添加元素，其他线程必须等待。
-				- 另外 notEmpty 和 notFull 用来实现入队和出队的同步。由于出入队是两个非公平独占锁，所以可以同时又一个线程入队和一个线程出队，其实这个是个生产者-消费者模型。
+				- 另外 notEmpty 和 notFull 用来实现入队和出队的同步。由于出入队是两个非公平独占锁，所以可以同时有一个线程入队和一个线程出队，其实这个是个生产者-消费者模型。
 
 			- 主要方法
 
@@ -383,6 +389,13 @@
 		- PriorityBlockingQueue
 
 			- 一个支持优先级排序的无界阻塞队列，每次出队都返回优先级最高的元素，是二叉树最小堆的实现，直接遍历队列元素是无序的。
+
+		- DelayQueue
+
+			- 一个使用优先级队列实现的无界阻塞队列
+			- DelayQueue 队列中每个元素都有个过期时间，并且队列是个优先级队列，当从队列获取元素时候，只有过期元素才会出队列。
+			- 内部使用的是 PriorityQueue 存放数据，使用 ReentrantLock 实现线程同步，所以是阻塞队列。
+			- 队列里面的元素要实现 Delayed 接口，一个是获取当前剩余时间的接口，一个是元素比较的接口，因为是有优先级的队列。
 
 		- SynchronousQueue
 

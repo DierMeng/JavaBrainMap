@@ -458,4 +458,22 @@ XmlWebApplicationContext
 - 销毁 Bean
 
 	- destory
+## Spring Bean 的生命周期（源码层面）
+### 获取 Bean
+首先根据 BeanName 从缓存中获取单例，如果缓存中存在该 Bean，判断当前单例是否在创建中，创建中的话就等待，否则直接返回即可；
+如果缓存中不存在该 Bean，判断当前单例是否在创建当中，如果是在创建当中，可能会抛出不可解的循环依赖异常；
+如果该 Bean 已经创建好了，那么会获取当前 BeanFactory 的 ParentBeanFactory，如果 ParentBeanFactory 不为空且 BeanDefinitionMap 中也不存在这个 Bean，则会调用 ParentBeanFactory 的 getVBean。
+如果不满足上述两个条件，继续判断当前 Bean 是否存在父类的 Bean，合并 RootBeanDefinition，接下来就是实例化当前 Bean 的 dependsOn 的 Bean，然后判断依赖 Bean 是否也是单例的，满足的话就调用 CreateBean。
+### 创建 Bean 之前
+创建 Bean 之前首先雀稗关联了 Bean 的 Class 对象，然后会封装成 RootBeanDefinition，在此期间会进行 InstantiationAwareBeanPostProcessor 的 postProcessBeforeInstantiation、postProcessAfterInstantiation 的调用，过程要保证方法的调用返回的 Bean 不为空，最后调用 doCreateBean。
+### 真正的创建 Bean
+真正的创建 Bean 的过程就相对比较复杂，首先获取并移除未完成的 BeanWrapper 实例，在 BeanWrapper 为空的情况下调用 createBeanInstance 实例化 Bean，然后当前 Bean 要满足「是单例 Bean」、「能够尝试解析 Bean 之间的循环依赖」、「Bean 目前在创建中」这三点，在此之前还有一个 Bean 是否实现了 MergedBeanDefinitionPostProcessor 接口的 postProcessMergedBeanDefinition 方法用来对实例化之后的 Bean 进行合并操作。
+
+满足前面三点之后，接下来判断是否实现了 SmartInstantiationAwareBeanPostProcessor 的 getEarlyBeanReference 方法，主要用来将创建的 Bean 加入到单例对象的工厂缓存跟实例化完毕后单例缓存的集合中。然后就是调用 populateBean 对 Bean 进行填充，接着调用 initializeBean 对 Bean 进行初始化操作。
+#### 填充 Bean
+填充 Bean 是默认的行为，首先判断 Bean 是否实现了 InstantiationAwareBeanPostProcessor 的 postProcessAfterInstantiation 方法，如果实现的话需要进一步做填充。填充基本就是从给定的 BeanWrapper 中提取一组经过过滤的属性描述符，排除忽略的依赖项类型或者在忽略的依赖项接口上定义的属性，然后判断它们是否实现了前面说的 postProcessAfterInstantiation 方法，统一进行属性填充。
+#### 实例化 Bean
+这里其实就是代理，利用反射或者 CGLIB 构造 Bean。首先获取 Bean 的 Class 对象，对其是否是 public 的、是否定义了 Supplier 函数、是否制定了工厂实例 Bean、getBean 的时候是否已经缓存，如果依次满足条件就会直接返回实例化的 Bean。这里存在一种情况就是 当 getBean 的时候如果传入的构造参数不为 null，则需要判断 Bean 是否实现了 SmartInstantiationAwareBeanPostProcessor 的 determineCandidateConstructors 从而来决定使用哪一个构造器，否则就会使用默认的构造器直接进行 initializeBean。
+### 实例化之后以及销毁
+实例化之后就是 postProcessProperties 属性操作了。然后 Bean 就已经初始化好了，销毁就是注册 destory 方法使用指定的 destory 方法进行销毁。
 

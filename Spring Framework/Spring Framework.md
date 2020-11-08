@@ -302,6 +302,18 @@
 
 	- destory 方法销毁 Bean
 
+- FactoryBean 和 BeanFactory
+
+	- BeanFactory
+
+		- Bean 工厂，Spring IoC 容器的最高层接口就是 BeanFactory，作用是管理 Bean，即实例化、定位、配置应用程序中的对象及监理这些对象之间的依赖
+
+	- FactoryBean
+
+		- 工厂 Bean，是一个 Bean，作用是产生其他 Bean 实例
+		- 一个 Bean 如果实现了 FactoryBean 接口，那么根据该 Bean 的名称获取到的实际上是 getObject() 返回的对象，而不是这个 Bean 自身实例，如果要获取这个 Bean 自身实例，那么需要在名称前面加上 '&' 符号。
+		- 可以向容器中注册两个 Bean，一个是它本身，一个是 FactoryBean.getObject() 方法返回值所代表的 Bean
+
 ### 缓存数据
 
 - 循环依赖
@@ -526,12 +538,6 @@
 	- @EnableWebMvc
 
 		- 将此注释添加到带有 @Configuration 的类中会从 WebMvcConfigurationSupport 中导入 Spring MVC 配置。
-
-## Spring Boot
-
-### 注解大全
-
-## Spring Cloud
 
 ## Spring MVC
 

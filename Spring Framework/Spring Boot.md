@@ -152,3 +152,25 @@ SpringBoot 在启动时会去依赖的 starter 包中寻找 /META-INF/spring.fac
 
 	- 当前项目是 Web 项目的条件下
 
+## SpringBoot Spring IOC  BeanFactory 运行时动态注册 bean
+
+### 义一个没有被 Spring 管理的 Controller，实现 InitializingBean 接口
+
+### 获取 Spring 上下文
+
+- private static ApplicationContext applicationContext;
+- 通过名字获取上下文中的 bean
+- 通过类型获取上下文中的bean
+
+### 将 applicationContext 转换为 ConfigurableApplicationContext
+
+### 获取 bean 工厂并转换为 DefaultListableBeanFactory
+
+### 通过 BeanDefinitionBuilder 创建 bean 定义
+
+### 设置属性
+
+### 注册bean
+
+- defaultListableBeanFactory.registerBeanDefinition("userController", beanDefinitionBuilder.getRawBeanDefinition());
+

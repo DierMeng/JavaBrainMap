@@ -420,6 +420,10 @@
 
 			- 字段或方法/构造函数参数级别的注释，表示受影响参数的默认值
 
+		- @Order/ Ordered 接口
+
+			- 是定义 Spring IOC 容器中 Bean 的执行顺序的优先级，而不是定义 Bean 的加载顺序，Bean 的加载顺序不受 @Order 或 Ordered 接口的影响；
+
 	- 配置类注解
 
 		- @Configuration

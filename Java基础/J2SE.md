@@ -163,6 +163,36 @@
 一、1.5倍扩容
 二、如果超过 MAX_ARRAY_SIZE 进行 huge 扩容
 三、MAX_ARRAY_SIZE 是 Integer 最大值-8，size 最大值就是 Integer.MAX_VALUE。
+		- 简单源码分析
+
+			- 父级继承实现
+
+				- 实现了 RandomAccess 接口，可以随机访问
+				- 实现了 Cloneable 接口，可以克隆
+				- 实现了 Serializable 接口，可以序列化、反序列化
+				- 实现了 List 接口，是 List 的实现类之一
+				- 实现了 Collection 接口，是 Java Collections Framework 成员之一
+				- 实现了 Iterable 接口，可以使用 for-each 迭代
+
+			- 类特点
+
+				- ArrayList 是实现 List 接口的可自动扩容的数组。实现了所有的 List 操作，允许所有的元素，包括 null 值。
+				- ArrayList 大致和 Vector 相同，除了 ArrayList 是非同步的。
+				- size isEmpty get set iterator 和 listIterator 方法时间复杂度是 O(1)，常量时间。其他方法是 O(n)，线性时间。
+				- 每一个 ArrayList 实例都有一个 capacity（容量）。capacity 是用于存储列表中元素的数组的大小。capacity至少和列表的大小一样大。
+				- 如果多个线程同时访问 ArrayList 的实例，并且至少一个线程会修改，必须在外部保证 ArrayList 的同步。修改包括添加删除扩容等操作，仅仅设置值不包括。这种场景可以用其他的一些封装好的同步的 list。如果不存在这样的Object，ArrayList 应该用 Collections.synchronizedList 包装起来最好在创建的时候就包装起来，来保证同步访问。
+				- iterator() 和 listIterator(int) 方法是 fail-fast 的，如果在迭代器创建之后，列表进行结构化修改，迭代器会抛出 ConcurrentModificationException。
+				- 面对并发修改，迭代器快速失败、清理，而不是在未知的时间不确定的情况下冒险。请注意，快速失败行为不能被保证。通常来讲，不能同步进行的并发修改几乎不可能做任何保证。因此，写依赖这个异常的程序的代码是错误的，快速失败行为应该仅仅用于防止 bug。
+
+			- ArrayList 基本特点总结
+
+				- ArrayList 底层的数据结构是数组
+				- ArrayList 可以自动扩容，不传初始容量或者初始容量是0，都会初始化一个空数组，但是如果添加元素，会自动进行扩容，所以，创建 ArrayList 的时候，给初始容量是必要的
+				- Arrays.asList() 方法返回的是的 Arrays 内部的 ArrayList，用的时候需要注意
+				- subList() 返回内部类，不能序列化，和 ArrayList 共用同一个数组
+				- 迭代删除要用，迭代器的 remove 方法，或者可以用倒序的 for 循环
+				- ArrayList 重写了序列化、反序列化方法，避免序列化、反序列化全部数组，浪费时间和空间
+				- elementData 不使用 private 修饰，可以简化内部类的访问
 
 	- Vector
 
@@ -316,11 +346,164 @@
 
 ### NIO
 
+## Java 类
+
+### 成员变量
+
+- 成员变量是可以不用给初始值的，默认就有一个初始值。
+
+### 局部变量
+
+- 局部变量，必须显示给予一个初始值，否则编译无法通过。
+
+### 基本数据类型
+
+- String
+
+	- String 中 hashcode 的实现
+
+		- 以 31 为权，每一位为字符的ASCII值进行运算，用自然溢出来等效取模。
+		- 31 是一个奇质数，所以 31*i=32*i-i=(i<<5)-i，这种位移与减法结合的计算相比一般的运算快很多。
+
+### 如何写一个不可变的类
+
+- 类添加 final 修饰符，保证类不被继承。
+- 保证所有成员变量必须私有，并且加上 final 修饰
+- 不提供改变成员变量的方法，包括 setter
+- 通过构造器初始化所有成员，进行深拷贝(deep copy)
+
+## java.lang.annotation（Java 注解）
+
+### 基本知识
+
+- 注解（Annotation），也叫元数据（Metadata），是Java5的新特性
+- 注解与类、接口、枚举在同一个层次，并可以应用于包、类型、构造方法、方法、成员变量、参数、本地变量的声明中，用来对这些元素进行说明注释。
+
+### 注解的语法与定义形式
+
+- 以 @interface 关键字定义
+- 注解包含成员，成员以无参数的方法的形式被声明。其方法名和返回值定义了该成员的名字和类型。
+- 成员赋值是通过 @Annotation(name=value) 的形式。
+- 注解需要标明注解的生命周期，注解的修饰目标等信息，这些信息是通过元注解实现。
+
+### 注解的分类
+
+- 第一种分法
+
+	- 基本内置注解
+
+		- @Override
+		- @Deprecated
+		- @SuppressWarnings
+
+	- 元注解，负责注解其他注解的注解
+
+		- @Target
+
+			- 标明注解的修饰目标，共有
+
+		- @Retention
+		- @Documented
+
+			- 标记注解，用于描述其它类型的注解应该被作为被标注的程序成员的公共 API，因此可以被例如 javadoc 此类的工具文档化。
+
+		- @Inherited
+
+			- 标记注解，允许子类继承父类的注解
+
+	- 自定义注解
+
+- 第二种分法
+
+	- 通过元注解 @Retention 实现，注解的值是 enum 类型的 RetentionPolicy
+
+		- 用来修饰注解，是注解的注解，称为元注解。
+		- RetentionPolicy
+
+			- RetentionPolicy.SOURCE
+
+				- 注解只保留在源文件，当Java文件编译成class文件的时候，注解被遗弃；
+				- 对应 Java 源文件（.java文件）
+
+			- RetentionPolicy.CLASS
+
+				- 注解被保留到 class 文件，但 jvm 加载 class 文件时候被遗弃，这是默认的生命周期；
+				- 对应 .class 文件
+
+			- RetentionPolicy.RUNTIME
+
+				- 注解不仅被保存到class文件中，jvm加载class文件之后，仍然存在；
+				- 内存中的字节码
+
+			- 生命周期长度 SOURCE < CLASS < RUNTIME
+
+		- 一般如果需要在运行时去动态获取注解信息，那只能用 RUNTIME 注解，比如 @Deprecated 使用 RUNTIME 注解
+		- 如果要在编译时进行一些预处理操作，比如生成一些辅助代码就用 CLASS注解；
+		- 如果只是做一些检查性的操作，比如 @Override 和 @SuppressWarnings，使用 SOURCE 注解。
+
 ## JDBC
 
 ### PreparedStatement
 
 ### Statement
+
+### 数据库连接
+
+- DataSource
+
+	- DataSource 是作为 DriverManager 的替代品而推出的，DataSource 对象是获取连接的首选方法。
+	- 类似于一个 DriverManager，拥有对外提供连接的能力,是一个工厂对象
+	- DataSource 中获取的连接来自于连接池中，而池中的连接根本也还是从 DriverManager 获取而来
+	- 形式是 JNDI （Java Naming Directory Interface）,在应用程序与数据库连接之间插入了一个中间层，进而可以实现连接池以及事务管理
+	- 通过 DataSource 对象访问的驱动程序本身不会向 DriverManager 注册
+	- CommonDataSource
+
+		- DataSource
+
+			- 获取 connection 的接口
+
+		- XADataSource 
+
+			- 用来获取分布式事务连接的接口
+
+		- ConnectionPoolDataSource 
+
+			- 从 connection pool 中拿 connection 的接口
+
+	- 额外功能
+
+		- 缓存 PreparedStatement 以便更快的执行
+		- 可以设置连接超时时间
+		- 提供日志记录的功能
+		- ResultSet 大小的最大阈值设置
+		- 通过 JNDI 的支持，可以为 servlet 容器提供连接池的功能
+
+- DriverManager
+
+	- Connection conn = DriverManager.getConnection(url, user, password); 建立与数据库的连接
+	- 建立与数据库的连接是一项较耗资源的工作，频繁的进行数据库连接建立操作会产生较大的系统开销。
+
+### JDBC 定义的五种事务隔离级别
+
+- TRANSACTION_NONE
+
+	- JDBC驱动不支持事务
+
+- TRANSACTION_READ_UNCOMMITTED
+
+	- 允许脏读、不可重复读和幻读。
+
+- TRANSACTION_READ_COMMITTED
+
+	- 禁止脏读，但允许不可重复读和幻读。
+
+- TRANSACTION_REPEATABLE_READ
+
+	- 禁止脏读和不可重复读，但允许幻读。
+
+- TRANSACTION_SERIALIZABLE
+
+	- 禁止脏读、不可重复读和幻读。
 
 ## 面向对象
 
@@ -371,6 +554,32 @@
 
 	- 在 GC 决定回收一个不被其他对象引用的对象时调用。
 	- 任何对象的 finalize 方法只会被  JVM 调用一次。
+
+### Bean 的转换
+
+- 分层领域模型对象
+
+	- PO（Persistent Object）： 持久对象，数据；就是 DAO 层操作的对象。
+	- BO（Business object） ：业务对象，封装对象、复杂对象 ，里面可能包含多个类；你可以当做 service 层（业务层）需要使用的。
+	- DTO（Data Transfer Object）： 传输对象，前端调用时传输；
+	- VO（View Object）：表现对象，前端界面展示。专门用来表现数据内容的，你可以理解为 SpringMVC 中 model 传输的那个对象，你可能会问它与 DTO 是什么区别，举个例子：当对象中有个 status 字段，它不需要展示在前端中，但是数据传输的时候需要用它来对前端用户做验证，验证用户状态是否正常，这个时候用到的就是 DTO，但是他不负责展示给用户，这么说吧 controller 接受 DTO，发送 VO
+	- DO（Domain Object）：领域对象，就是从现实世界中抽象出来的有形或无形的业务实体。其实它一般也是和数据库中的表对应，更严谨一些。
+
+- 转换工具
+
+	- 自己对每个属性进行 setXX 方法的转换
+	- Apache 的 BeanUtils 类
+
+		- 性能差
+
+	- Spring 的 BeanUtils
+
+		- 调用次数足够多的时候，会明显的感受到卡顿
+
+	- Cglib BeanCopier
+	- MapStruct
+
+		- 推荐
 
 ## Java 8 新特性
 
@@ -588,4 +797,122 @@
 	- getModifiers()、getName()
 	- getParameterizedType()、getType()
 	- isNamePresent()、isVarArgs
+
+## Java 9 新特性
+
+### 最主要的变化是已经实现的模块化系统，是一个包的容器
+
+### HTTP 2 客户端
+
+### 改进的 Javadoc
+
+### 多版本兼容 JAR 包
+
+### 集合工厂方法
+
+### 私有接口方法
+
+### 进程 API
+
+### 改进的 Stream API
+
+### 改进 try-with-resources
+
+### 改进的弃用注解 @Deprecated
+
+### 改进钻石操作符(Diamond Operator) 
+
+### 改进 Optional 类
+
+### 改进的 CompletableFuture API
+
+### 响应式流（Reactive Streams) API
+
+## Java 10 新特性
+
+### 局部变量类型推断
+
+- 引入了 var 语法，可以自动推断变量类型
+
+### GC改进和其他内务管理
+
+### 线程本地握手
+
+### 备用内存设备上的堆分配
+
+### 根证书认证程序
+
+## Java 11 新特性
+
+### Java 8 之后的第一个 LTS 版本，从 Java 11 开始，Oracle JDK 不在以免费的用于商业用途
+
+### String API
+
+- isBlank() 判空
+- lines() 分割获取字符串流
+- repeat() 复制字符串
+- strip() 去除前后空白字符
+
+### File API
+
+### HTTP Client
+
+- 支持 HTTP/1.1 和 HTTP/2 ，也支持 websockets。
+
+### Lambda 局部变量推断
+
+### 单命令运行 Java
+
+### 免费的飞行记录器
+
+## Java 12 新特性
+
+### Switch 表达式
+
+### Shenandoah GC
+
+### JVM 常量 API
+
+### G1的可中断 mixed GC
+
+### G1归还不使用的内存
+
+## Java 13 新特性
+
+### GC 层面则改进了 ZGC，以支持 Uncommit Unused Memory
+
+### 语法层面，改进了 Switch Expressions，新增了 Text Blocks，二者皆处于 Preview 状态；API 层面主要使用 NioSocketImpl 来替换 JDK1.0 的 PlainSocketImpl
+
+## Java 14 新特性
+
+### instanceof 的模式匹配
+
+- 对目标对象进行检查的断言（predicate）
+- 当断言成立时，从目标对象中提取值的绑定变量。
+
+### Java 打包工具
+
+### G1 支持 NUMA
+
+### 更有价值的 NullPointerException
+
+### 删除 CMS 垃圾回收器
+
+### 废弃 ParallelScavenge + SerialOld 的 GC 组合
+
+## Java 15 新特性
+
+### 外内存访问 API
+
+### 密封类（sealed classes）的预览
+
+### 数字签名算法
+
+### 套接字的更新实现
+
+### instanceof模式匹配
+
+### ZGC 产品化
+
+### RMI Activation 进入不推荐期
 

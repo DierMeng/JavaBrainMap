@@ -429,8 +429,15 @@ git push origin --delete master
 ### 代码未完成并且要切换到其他分支
 
 - git stash 当前分支
-- 去其他分支处理事情
-- 回到当前分支还原暂存的代码 git stash apply
+
+	- 去其他分支处理事情
+	- 回到当前分支还原暂存的代码 git stash apply
+	- git stash save "修改的信息"
+	- git stash pop
+	- git stash list
+	- git stash apply stash@{0}
+
+- 及时 commit 代码，不 push
 
 ### 合并其他分支的指定 Commit
 

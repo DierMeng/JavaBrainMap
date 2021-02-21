@@ -35,6 +35,15 @@
 
 		- 与具体的日志实现组件实现的桥接类，具体的日志实现组件需要定义org.slf4j.impl包，并在org.slf4j.impl包下提供此类
 
+	- MDC（Mapped Diagnostic Contexts）
+
+		- 实现分布式多线程日志数据传递的重要工具
+		- 可以将某个或某些所有日志中都需要打印的字符串设置于 MDC 中，就不需要每次打印日志时都专门写出来
+
+			- 调用链系统中调用链唯一标示 traceID 及其中某次调用关系标示 rpcID。
+
+		- 基本的日志实现都是利用 ThreadLocal 去实现 MDC，达到不同线程间日志信息互不影响的目的。
+
 - 与其他各种日志组件的桥接
 
 	- logback-classic-X.X.XX.jar

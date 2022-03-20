@@ -60,7 +60,36 @@
 - 程序运行正常结束
 - System.exit() 或者 Runtime.getRuntime().exit()
 - 异常未捕获或者 error
-- 强制结束 JVM 进程
+- 强制结束 JVM 进程或者 JVM 自身故障
+
+	- JVM 发生致命错误导致崩溃时，会生成一个 hs_err_pid_xxx.log
+	- 文件包含了导致 JVM crash 的重要信息，生成在工作目录下，也可以通过 JVM 参数指定生成路径
+
+- linux 的 OOM killer 杀死
+
+	- Linux 内核有个机制叫OOM killer，会监控那些占用内存过大，尤其是瞬间很快消耗大量内存的进程，为了防止内存耗尽而内核会把该进程杀掉。
+	- 系统报错日志
+
+		- /var/log/messages
+		- egrep -i 'killed process' /var/log/messages
+		- dmesg | grep java
+
+- JVM 报 OOM 异常
+
+	- -XX:+HeapDumpOnOutOfMemoryError
+	- -XX:HeapDumpPath=*/java.hprof
+
+### 区别
+
+- Class.forName
+
+	- 加载类是将类进了初始化
+	- 相当于调用无参构造函数，会调用 static 静态代码来初始化配置
+
+- ClassLoader.getSystemClassLoader().loadClass
+
+	- 没有对类进行初始化，只是把类加载到了虚拟机中
+	- IOC 的实现就是使用的 ClassLoader
 
 ## JVM 内存模型
 
@@ -251,6 +280,7 @@
 		- 如果在堆中没有内存完成实例分配，并且堆也无法再扩展时，将会抛出 OutOfMemoryError 异常
 		- 当常量池无法再申请到内存时会抛出 OutOfMemoryError 异常
 		- 各个内存区域的总和大于物理内存限制（包括物理上的和操作系统级的限制），从而导致动态扩展时出现 OutOfMemoryError 异常。
+		- 当一个线程抛出 OOM 异常后，它所占据的内存资源会全部被释放掉，从而不会影响其他线程的运行
 
 - G1
 
@@ -326,6 +356,7 @@ https://tech.meituan.com/2017/12/29/jvm-optimize.html
 		- 要看懂GC日志
 
 	- GC 优化不能解决一切性能问题，它是最后的调优手段。
+	- JVM 调优可以理解为本质就是为了减少 Full GC的出现。
 
 - JVM 基础回顾
 
@@ -531,12 +562,4 @@ https://tech.meituan.com/2017/12/29/jvm-optimize.html
 		- 每个 Class 的属性指针（静态成员变量）
 		- 每个对象的属性指针
 		- 普通对象数组的每个元素指针
-
-### 子主题 2
-
-### 子主题 3
-
-### 子主题 4
-
-### 子主题 5
 

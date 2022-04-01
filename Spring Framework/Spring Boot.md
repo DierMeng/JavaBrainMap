@@ -4,13 +4,23 @@
 
 ### @Configuration
 
+- 配置 spring 容器（应用上下文）
+
 ### @EnableAutoConfiguration
+
+- 将所有符合自动配置条件的 bean 定义加载到 IoC 容器
 
 ### @ComponentScan
 
 - @Component
+
+	- 自动扫描并加载符合条件的组件或 bean 定义，最终将这些 bean 定义加载到容器中
+
 - @Service
 - @Repository
+
+	- 用在持久层的接口上，将接口的一个实现类交给 Spring 管理。
+
 - @Controller
 - @Entity
 
@@ -18,7 +28,7 @@
 
 ### Profile 是 Spring 对不同环境提供不同配置功能的支持，可以通过激活、指定参数等方式快速切换环境。
 
-- 默认使用 application.properties、application。yml 配置文件。
+- 默认使用 application.properties、application.yml 配置文件。
 - application-{profile}.properties
 - application-{profile}.yml
 
@@ -35,7 +45,7 @@
 
 - 命令行方式
 
-	- java -jarglorze.jar --spring.profiles.active=prod；
+	- java -jar glorze.jar --spring.profiles.active=prod；
 
 ## Spring Boot Actuator
 
@@ -153,13 +163,13 @@ SpringBoot 在启动时会去依赖的 starter 包中寻找 /META-INF/spring.fac
 
 ## SpringBoot Spring IOC  BeanFactory 运行时动态注册 bean
 
-### 义一个没有被 Spring 管理的 Controller，实现 InitializingBean 接口
+### 一个没有被 Spring 管理的 Controller，实现 InitializingBean 接口
 
 ### 获取 Spring 上下文
 
 - private static ApplicationContext applicationContext;
 - 通过名字获取上下文中的 bean
-- 通过类型获取上下文中的bean
+- 通过类型获取上下文中的 bean
 
 ### 将 applicationContext 转换为 ConfigurableApplicationContext
 

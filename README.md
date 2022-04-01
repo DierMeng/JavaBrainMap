@@ -16,7 +16,8 @@ Java 知识体系涉及到的各方面知识点脑图、思维导图总结。
 - 设计模式
 - 数据结构
 - 数据库
+- 分布式
 # 官方博客 #
-- <a href="http://www.glorze.com/" target="_blank">高老四博客</a>
-
-
+- <a href="https://www.glorze.com/" target="_blank">高老四博客</a>
+- <a href="https://www.oom.cool/" target="_blank">高老四导航</a>
+- <a href="https://www.downhub.net/" target="_blank">DownHub</a>

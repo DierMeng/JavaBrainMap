@@ -1,11 +1,10 @@
-# MySQL 技能图谱
+# MySQL 技能图谱概括版
 
 ## 数据库基础
 
 ### 概念
 
 简而言之可视为电子化的文件柜——存储电子文件的处所，用户可以对文件中的数据运行新增、截取、更新、删除等操作。所谓「数据库」系以一定方式储存在一起、能予多个用户共享、具有尽可能小的冗余度、与应用程序彼此独立的数据集合。一个数据库由多个表空间（Tablespace）构成。
-
 ### 模型
 
 - 分类
@@ -217,11 +216,12 @@
 
 - SqlYog
 
-### 基本结构
+### 基本结构（SQL 的执行过程）
 
 - 客户端
 
-	- 拖拽放大图片
+	- https://pic.imgdb.cn/item/5d89976a451253d178477d7b.png
+MySQL 的 SQL 执行过程
 
 - 连接器
 
@@ -285,6 +285,15 @@
 		- 两个 SQL 语句整个的格式都是不同的。 
 		- Statement 则执行异构的 SQL 语句效率更高
 
+- 各种关键字含义
+
+	- EXIST、NOT EXIST
+
+		- 带有 EXISTS 的子查询不返回任何数据，只产生逻辑真值「true」或者逻辑假值「false」。
+		- 使用 NOT EXISTS 后，若对应查询结果为空，则外层的 WHERE 子语句返回值为真值，否则返回假值。
+
+- SQL 语句函数
+
 ### CRUD
 
 - 增加
@@ -317,6 +326,11 @@
 
 		- 对于外键（foreignkey ）约束引用的表，不能使用 truncate table，而应使用不带 where 子句的 delete 语句。
 		- truncate table 不能用于参与了索引视图的表。
+		- 在drop table的时候，innodb维护了一个全局锁，drop完毕锁就释放了。
+
+	- 大表删除方案
+
+		- Linux 硬链接
 
 ### 视图
 
@@ -335,11 +349,9 @@
 - 原子性（Atomic）
 
   事务中包含的操作被看作一个整体的业务单元，这个业务单元中的操作要么全部成功，要么全部失败，不会出现部分失败、部分成功的场景。
-
 - 一致性（Consistency）
 
   事务在完成时，必须使所有的数据都保持一致状态，在数据库中所有的修改都基于事务，保证了数据的完整性。
-
 - 隔离性（Isolation）
 
 	- 隔离级别（当前读）
@@ -370,7 +382,6 @@
 - 持久性（Durability）
 
   事务结束后，所有的数据会固化到一个地方，如保存到磁盘当中，即使断电重启后也可以提供给应用程序访问。
-
 ### 锁
 
 - 锁
@@ -389,7 +400,6 @@
 	- 死锁
 
 	  死锁的发生与否，并不在于事务中有多少条 SQL 语句，死锁的关键在于：两个或以上的 Session 加锁的顺序不一致。
-
 ### 索引
 
 - 索引（B+树）
@@ -399,7 +409,6 @@
   常见索引模型：哈希表、有序数组、搜索树。
   
   索引类型：主键索引（存储整行数据）、非主键索引（主键的值，需要回表两次查询）
-
 	- 数据结构角度
 
 		- B+ 树索引（查询性能高、IO 次数少、范围查询简便）
@@ -416,7 +425,6 @@
 		  链接：https://www.zhihu.com/question/67094336/answer/250034118
 		  来源：知乎
 		  著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
-
 			- 无法用于排序
 			- 仅支持 < = > 以及 IN 操作
 			- 哈希冲突比较多的话，维护代价高
@@ -463,19 +471,18 @@
 
 		- 主键索引
 
-			- 主键索引只要搜索ID这个B+Tree即可拿到数据。
-			- 不允许空值
+			- **主键索引只要搜索ID这个B+Tree即可拿到数据。**
+			- **不允许空值**
 
 		- 唯一索引
 
-			- 必须唯一，允许空值
+			- **必须唯一，允许空值**
 
 		- 普通索引
 
-			- 普通索引先搜索索引拿到主键值，再到主键索引树搜索一次(回表)
+			- **普通索引先搜索索引拿到主键值，再到主键索引树搜索一次(回表)**
 
 			  回到主键索引树搜索的过程，称为回表
-
 ### SQL 模式
 
 - SELECT @@GLOBAL.sql_mode;
@@ -530,6 +537,9 @@
 
 		- 应用系统的 SQL 优化
 
+			- 慢查询日志定位执行效率低的 SQL 语句
+			- 用 explain 分析 SQL 的执行计划
+
 	- 第二级别
 
 		- MySQL 的服务器优化
@@ -548,10 +558,376 @@
 			- 读写分离
 			- 主从
 
+				- master 写入数据时会留下写入日志，slave 根据 master 留下的日志模仿其数据执行过程进行数据写入。
+				- 主从不一致的诱因
+
+					- mater 日志写入不成功导致 slave 不能正常模仿。
+					- slave 根据 master 日志模仿时写入不成功。
+
+				- 保证主从一致的方案
+
+					- Master 角度
+
+						- InnoDB Redo Log 记录了对数据文件的物理更改，并保证总是日志先行，在持久化数据文件前，保证之前的 redo 日志已经写到磁盘。
+						- Binlog和InnoDB Redo Log是否落盘将直接影响实例在异常宕机后数据能恢复到什么程度。
+						- InnoDB 提供了相应的参数来控制事务提交时，写日志的方式和策略
+
+							- innodb_support_xa=ON
+
+								- 事务提交流程会变成两阶段提交，MySQL 内部 xa 事务
+
+							- innodb_doublewrite=ON
+
+								- 证不论是 MySQL Crash 还是 OS Crash 或者是主机断电重启都不会丢失数据
+
+							- innodb_flush_log_at_trx_commit = 1
+sync_binlog = 1
+
+								- 保证每次事务提交后，都能实时刷新到磁盘中，尤其是确保每次事务对应的 binlog 都能及时刷新到磁盘中，只要有了 binlog，InnoDB 就有办法做数据恢复，不至于导致主从复制的数据丢失
+
+					- slave 角度
+
+						- 异步复制（不推荐）
+
+							- 主库在执行完客户端提交的事务后会立即将结果返给给客户端，并不关心从库是否已经接收并处理
+
+						- 半同步复制
+
+							- 主库在应答客户端提交的事务前需要保证至少一个从库接收并写到 relay log 中
+							- 存在数据丢失的问题
+
+						- 全同步复制
+
+							- 在调用 binlog sync 之后，engine 层 commit 之前等待 Slave ACK。这样只有在确认 Slave 收到事务 events 后，事务才会提交。
+
+	- 垂直拆分
+	- 水平拆分
+
 - 软硬结合
 
 	- SQL 语句以及索引优化
 	- 表结构\表设计优化
 	- 系统配置
 	- 服务器硬件配置
+
+### 慢 SQL 优化方案
+
+- 慢 SQL 的因素
+
+	- 索引设计问题
+	- SQL 编写问题
+	- 表结构（类型、长度等）设计问题
+	- 锁
+	- 并发对 IO/CPU 资源争用
+	- 服务器硬件
+	- MySQL 本身的 Bug
+
+- 解决之道
+
+	- 优化分析流程
+
+		- 了解 SQL 的执行效率
+
+			- show status like 'Com_%';  -- 了解 SQL 的执行频率
+			- show status like 'Innodb_rows_%';
+
+		- 定位慢查询
+
+			- MyBatis 插件实现 SQL 监控
+			- 通过慢查询日志定位那些执行效率较低的 SQL 语句
+
+				- 打开慢查询
+
+					- set global slow_query_log=on;
+
+				- 查询 long_query_time 的值
+
+					- show variables like 'long_query_time';  -- 慢查询阈值：默认为 10s
+
+				- 查看慢查询日志路径
+
+					- show variables like "slow_query_log%";
+
+				- 注意：慢查询日志在查询结束以后才纪录，所以在应用反映执行效率出现问题时，查询慢查询日志并不能定位问题。
+
+		- 连接数
+
+			- 当数据库连接池被占满时，如果有新的 SQL 语句要执行，只能排队等待，等待连接池中的连接被释放。如果监控发现数据库连接池的使用率过高，甚至是经常出现排队的情况，则需要进行调优。
+
+				- show variables like '%max_connection%'; -- 查看最大连接数
+				- 在 /etc/my.cnf 里面设置数据库的最大连接数：max_connections = XXX
+				- show status like  'Threads%'; -- 查看当前连接数
+
+	- 执行计划（explain）详解
+
+		- id
+
+			- 执行编号，有几个 select 就有几个 id
+
+		- select_type
+
+			- 表示本行是简单的还是复杂的 select
+
+				- simple
+
+					- 简单查询，即查询不包含子查询和 union。
+
+				- primary
+
+					- 复杂查询中最外层的 select。
+
+				- subquery
+
+					- 包含在 select 中的子查询
+
+				- derived
+
+					- 包含在 from 子句中的子查询。MySQL 会将结果存放在一个临时表中，也称为派生表
+
+				- union
+
+					- 在 union 中的第二个和之后的 select 。
+
+				- union result
+
+					- 从 union 临时表检索结果的 select 。
+
+				- dependent union
+
+					- 首先需要满足 UNION 的条件及 UNION 中第二个以及后面的 SELECT 语句，同时该语句依赖外部的查询。
+
+				- dependent subquery
+
+					- 和 DEPENDENT UNION 相对 UNION 一样。
+
+		- table
+
+			- 正在访问哪一个表
+
+		- type
+
+			- 表示关联类型或访问类型，即 MySQL 决定如何查找表中的行
+
+				- 结果值从好到坏依次是：NULL > system > const > eq_ref > ref > fulltext > ref_or_null > index_merge > unique_subquery > index_subquery > range > index > ALL。
+
+					- NULL
+
+						- MySQL 能够在优化阶段分解查询语句，在执行阶段用不着再访问表或索引。
+
+					- const、system
+
+						- MySQL 能对查询的某部分进行优化并将其转化成一个常量，常用于 primary key 或 unique key 的所有列与常数比较时，因此表最多有一个匹配行，读取 1 次，速度比较快。
+
+
+					- eq_ref
+
+						- primary key 或 unique key 索引的所有部分被连接使用 ，最多只会返回一条符合条件的记录。
+
+					- ref
+
+						- 相比 eq_ref，不使用唯一索引，而是使用普通索引或者唯一索引的部分前缀。索引要和某个值相比较，可能会找到多个符合条件的行。
+
+					- ref_or_null
+
+						- 类似 ref，但是可以搜索值为 NULL 的行。
+
+					- index_merge
+
+						- 表示使用了索引合并的优化方法。
+
+					- range
+
+						- 范围扫描通常出现在 in()、between、>、<、>= 等操作中，表示使用一个索引来检索给定范围的行。一个良好的 SQL 效率至少要保证到该级别。
+
+					- index
+
+						- 和 ALL 一样，不同就是 MySQL 只需扫描索引树，这通常比 ALL 快一些。
+
+					- ALL
+
+						- 全表扫描，意味着 MySQL 需要从头到尾去查找所需要的行。
+
+				- 一般来说，得保证查询至少达到 range 级别，最好能达到 ref 。
+
+		- possible_keys
+
+			- 哪些索引可以优化查询
+
+		- key
+
+			- 实际采用哪个索引来优化查询
+
+				- 如果没有使用索引，则该列是 NULL。
+
+		- key_len
+
+			- 索引字段的长度
+
+		- ref
+
+			- 显示了之前的表在 key 列记录的索引中查找值所用的列或常量
+
+		- rows
+
+			- 为了找到所需的行而需要读取的行数
+
+		- Extra
+
+			- 执行情况的额外描述和说明
+
+				- distinct
+
+					- 一旦 MySQL 找到了与行相联合匹配的行，就不再搜索了。
+
+				- Using index
+
+					- 这发生在对表的请求列都是索引的时候，不需要读取数据文件，而从索引树（索引文件）中即可获得信息。这也是覆盖索引的标识，是性能高的表现。
+
+						- 如果同时出现 using where，表明索引被用来执行索引键值的查找；
+						- 没有 using where，表明索引用来读取数据而非执行查找动作。
+
+				- Using where
+
+					- 使用了 WHERE 从句来限制哪些行将与下一张表匹配或者是返回给用户。
+					- Extra 列出现 using where 表示 MySQL 服务器将存储引擎返回服务层以后再应用 WHERE 条件过滤，符合就留下，不符合就丢弃。
+
+				- Using temporary
+
+					- 表示需要用临时表保存中间结果，常用于 GROUP BY 和 ORDER BY 操作中，一般看到它说明查询需要优化了
+
+				- Using filesort
+
+					- MySQL需要额外的一次传递，以找出如何按排序顺序检索行。
+
+				- Not exists
+
+					- MYSQL 优化了 LEFT JOIN，一旦它找到了匹配 LEFT JOIN 标准的行，就不再搜索了。
+
+				- Using index condition
+
+					- 索引条件推送，MySQL 原来在索引上是不能执行如 like 这样的操作的，但是现在可以，这样少了不必要的 I/O 操作，但是只能用在二级索引上。
+
+				- Using join buffer
+
+					- 表示使用了连接缓存。
+
+				- impossible where
+
+					- 子句的值总是 false，不能用来获取任何元组。
+
+				- select tables optimized away
+
+					- 在没有 GROUP BY 子句的情况下，基于索引优化 MIN/MAX 操作
+					- 对于 MyISAM 存储引擎优化 COUNT(*) 操作，而不必等到执行阶段再进行计算，即在查询执行计划生成的阶段就完成优化。
+
+		- partitions(MySQL 8 新增)
+
+			- 如果查询是基于分区表的话，会显示查询将访问的分区
+
+		- filtered(MySQL 8 新增)
+
+			- 按表条件过滤的行百分比。
+			- rows * filtered/100 可以估算出将要和 explain 中前一个表进行连接的行数
+			- 前一个表指 explain 中的 id 值比当前表 id 值小的表
+
+	- 索引设计策略
+
+		- 索引设计准则：三星索引
+
+			- 第一颗星
+
+				- 参与条件查询（where、join、order by、group by）的列可以组成单列索引或联合索引。
+
+			- 第二颗星
+
+				- 避免排序，如果 SQL 语句中出现 order by column，那么取出的结果集就应该已经是按照 column 排序好的，而不需要再进行排序生成临时表。
+
+			- 第三颗星
+
+				- SELECT 的列应尽量都是索引列，即尽量使用覆盖索引，避免回表查询。
+
+	- SQL 优化
+
+		- 开启查询缓存（MySQL 8.0 已废弃该功能）
+		- 使用连接查询代替子查询
+		- 当只要一行数据时使用 LIMIT 1
+		- 多表关联查询时，小表在前，大表在后
+		- 调整 where 子句中的连接顺序
+		- 不要使用 ORDER BY RAND()
+		- 优化 GROUP BY
+
+			- GROUP BY … ORDER BY NULL;  -- 禁止排序
+
+		- JOIN 查询
+
+	- 表结构优化
+
+		- 永远为每张表创建主键
+		- 固定长度的表会更快
+		- 通过拆分表，提高访问效率
+		- 越小的列会越快
+		- 使用 ENUM 而不是 VARCHAR
+
+	- 事务和锁优化
+
+		- 死锁调优
+
+			- 排查死锁
+
+				- 查看死锁日志：show engine innodb status;
+				- 找出死锁 SQL
+				- 分析 SQL 加锁情况
+				- 模拟死锁案发
+				- 分析死锁日志
+				- 分析死锁结果
+
+			- 如何减少死锁发生
+
+				- 使用合适的索引。
+				- 使用更小的事务。
+				- 经常性的提交事务，避免事务被挂起。
+
+		- 高并发事务调优
+
+			- 结合业务场景，使用低级别事务隔离
+			- 避免行锁升级表锁
+			- 控制事务的大小，减少锁定的资源量和锁定时间长度
+
+	- MySQL 服务端参数优化
+
+		- Innodb_buffer_pool_size
+
+			- 影响性能的最主要参数，一般建议配置为系统总内存的 70-80%，这个参数决定了服务可分配的最大内存。
+
+		- Innodb_log_buffer_size
+
+			- 用来设置 Innodb 的 Log Buffer 大小的，系统默认值为 1MB 。 Log Buffer 的主要作用就是缓冲 Log 数据，提高写 Log 的 I/O 性能。
+			- 一般来说，如果你的系统不是写负载非常高且以大事务居多的话， 8MB 以内的大小就完全足够了。
+
+		- 刷盘策略
+
+			- Sync_binlog
+
+				- 控制日志刷盘策略的，基于安全一般设置为 1。
+
+			- Innodb_flush_log_at_trx_commit
+
+				- 控制事务日志刷盘策略，基于安全一般设置为 1。
+
+		- InnoDB 性能监控
+
+			- create table innodb_monitor(a int) engine=innodb;  -- 持续获取状态信息的方法
+			- 创建一个 innodb_monitor 空表后，InnoDB 会每隔 15 秒输出一次信息并记录到 Error Log 中。通过删除该表可停止监控。
+			- 还可以通过相同的方式打开和关闭 innodb_tablespace_monitor、innodb_lock_monitor、innodb_table_monitor 这三种监控功能。
+
+	- 硬件优化
+
+		- CPU：多核高频
+		- 内存：高内存
+		- 磁盘：选择 SSD；且一般要求做 RAID
+
+	- 架构优化
+
+		- 主从复制&读写分离
+		- 分库分表
 

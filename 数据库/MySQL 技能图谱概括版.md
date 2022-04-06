@@ -1,6 +1,6 @@
 # MySQL 技能图谱概括版
 
-## 数据库基础
+## 一、数据库基础
 
 ### 概念
 
@@ -32,7 +32,8 @@
 		- 既表示实体，也表示实体之间的联系，是现实世界的抽象，与计算机系统没有关系， 是可以被用户理解的数据描述方式。用户与系统设计者进行交流的工具
 		- 实体用矩形框表示，联系用菱形表示，属性用椭圆表示
 
-	- 示例（拉伸放大与缩小）
+	- https://pic.imgdb.cn/item/624d0704239250f7c50862d1.png
+E-R 图示例
 
 - 结构数据模型
 
@@ -128,7 +129,7 @@
 	- 外模式-模式
 	- 模式-内模式
 
-## 数据库设计基础
+## 二、数据库设计基础
 
 ### 设计规范
 
@@ -182,7 +183,7 @@
 
 ### 设计评审
 
-## MySQL 基础知识
+## 三、MySQL 基础知识
 
 ### 安装与配置
 
@@ -194,11 +195,11 @@
 
 	- 安装 5.6
 
-		- http://www.glorze.com/322.html
+		- https://www.glorze.com/322.html
 
 	- 安装 5.7
 
-		- http://www.glorze.com/1412.html
+		- https://www.glorze.com/1412.html
 
 - Mac
 
@@ -212,9 +213,11 @@
 
 - Navicat
 
-	- http://www.glorze.com/320.html
+	- https://www.glorze.com/320.html
 
 - SqlYog
+- DataGrip
+- DBeaver
 
 ### 基本结构（SQL 的执行过程）
 
@@ -259,7 +262,7 @@ MySQL 的 SQL 执行过程
 - BLACKHOLE 存储引擎（有去无回）
 - CSV存储引擎（报表文件）
 
-## MySQL开发基础
+## 四、MySQL开发基础
 
 ### SQL 语句
 
@@ -342,7 +345,7 @@ MySQL 的 SQL 执行过程
 
 ### 事务
 
-## MySQL 高级开发
+## 七、MySQL 高级开发
 
 ### 事务
 
@@ -517,7 +520,7 @@ MySQL 的 SQL 执行过程
 
 	- 增删改查
 
-## MySQL 运维
+## 六、MySQL 运维
 
 ### 日志
 
@@ -527,7 +530,7 @@ MySQL 的 SQL 执行过程
 
 ### 复制
 
-## MySQL 优化
+## 五、MySQL 优化
 
 ### 优化思路
 

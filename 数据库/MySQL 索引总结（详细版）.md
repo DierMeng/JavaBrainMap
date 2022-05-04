@@ -384,6 +384,39 @@ B+ 树索引（查询性能高、IO 次数少、范围查询简便）
 		- 要想索引生效的话，只能使用 a 和 a,b 和 a,b,c 这三种组合（a,c 组合也可以，但实际上只用到了 a 的单列索引，c 并没有用到）。
 
 	- 创建联合索引时，应该仔细考虑列的顺序
+	- 联合索引场景示例
+
+		- select * from myTest  where a=3 and b=5 and c=4;
+
+			- abc 三个索引都在 where 条件里面用到了，而且都发挥了作用
+
+		- select * from myTest  where  c=4 and b=6 and a=3;
+
+			- where 里面的条件顺序在查询之前会被 MySQL 自动优化，效果跟上一句一样
+
+		- select * from myTest  where a=3 and c=7;
+
+			- 用到索引，b 没有用，所以 c 是没有用到索引效果的
+
+		- select * from myTest  where a=3 and b>7 and c=3;  
+
+			- a 用到了，b 也用到了，c 没有用到，这个地方 b 是范围值，也算断点，只不过自身用到了索引
+
+		- select * from myTest  where b=3 and c=4;  
+
+			- 因为 a 索引没有使用，所以这里 bc 都没有用上索引效果
+
+		- select * from myTest  where a>4 and b=7 and c=9;
+
+			- a 用到了  b 没有使用，c 没有使用
+
+		-  select * from myTest  where a=3 order by b;
+
+			- a 用到了索引，b 在结果排序中也用到了索引的效果，a 下面任意一段的 b 是排好序的
+
+		- select * from mytable where b=3 order by a;
+
+			- b 没有用到索引，排序中 a 也没有发挥索引效果
 
 - 唯一索引或者非唯一索引
 

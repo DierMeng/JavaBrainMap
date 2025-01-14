@@ -17,11 +17,13 @@
 	- 自动扫描并加载符合条件的组件或 bean 定义，最终将这些 bean 定义加载到容器中
 
 - @Service
+
 - @Repository
 
 	- 用在持久层的接口上，将接口的一个实现类交给 Spring 管理。
 
 - @Controller
+
 - @Entity
 
 ## 多 Profile 使用与切换
@@ -29,7 +31,9 @@
 ### Profile 是 Spring 对不同环境提供不同配置功能的支持，可以通过激活、指定参数等方式快速切换环境。
 
 - 默认使用 application.properties、application.yml 配置文件。
+
 - application-{profile}.properties
+
 - application-{profile}.yml
 
 ### yml 多文档块
@@ -41,6 +45,7 @@
 - 配置文件方式
 
 	- active: dev(prod、test)
+
 	- spring.profiles.active=dev
 
 - 命令行方式
@@ -99,6 +104,7 @@ SpringBoot 在启动时会去依赖的 starter 包中寻找 /META-INF/spring.fac
 ### @EnableXXX
 
 - @EnableFeignClients
+
 - @EnableDiscoveryClient
 
 ### 基于 class 是否存在的自动化配置
@@ -168,7 +174,9 @@ SpringBoot 在启动时会去依赖的 starter 包中寻找 /META-INF/spring.fac
 ### 获取 Spring 上下文
 
 - private static ApplicationContext applicationContext;
+
 - 通过名字获取上下文中的 bean
+
 - 通过类型获取上下文中的 bean
 
 ### 将 applicationContext 转换为 ConfigurableApplicationContext
@@ -197,12 +205,15 @@ Spring Boot 事件模型
 	- SpringApplication 实例已实例化，new SpringApplication(primarySources)
 
 		- 推断出应用类型 webApplicationType、main 方法所在类
+
 		- 给字段 initializers 赋值：拿到 SPI 方式配置的 ApplicationContextInitializer 上下文初始化器
 
 			- SPI(Service provider interface)，服务提供发现接口，JDK 内置的一种服务提供发现机制。一种动态替换发现的机制， 比如有个接口，想运行时动态的给它添加实现，你只需要添加一个实现。
+
 			- 当服务的提供者提供了一种接口的实现之后，需要在 classpath 下的 META-INF/services/ 目录里创建一个以服务接口命名的文件，这个文件里的内容就是这个接口的具体的实现类。当其他的程序需要这个服务的时候，就可以通过查找这个 jar 包（一般都是以jar包做依赖）的 META-INF/services/ 中的配置文件，配置文件中有接口的具体实现类名，可以根据这个类名进行加载实例化，就可以使用该服务了。
 
 		- 给字段 listeners 赋值：拿到 SPI 方式配置的 ApplicationListener 应用监听器
+
 		- 发送 ApplicationStartingEvent 事件
 
 			- LoggingApplicationListener
@@ -214,6 +225,7 @@ Spring Boot 事件模型
 				- 启动一个后台进行对一些类进行预热
 
 					- ValidationInitializer
+
 					- JacksonInitializer
 
 			- DelegatingApplicationListener
@@ -227,10 +239,13 @@ Spring Boot 事件模型
 - 环境已准备好，Spring Boot 的环境抽象 Enviroment 已经准备完毕，但此时其上下文 ApplicationContext 还没有创建
 
 	- 封装命令行参数（main 方法的 args）到 ApplicationArguments 里面
+
 	- 创建出一个环境抽象实例 ConfigurableEnvironment 的实现类，并且填入 Profiles 配置和 Properties 属性
+
 	- 发送 ApplicationEnvironmentPreparedEvent 事件
 
 		- 对环境抽象 Enviroment 的填值，均是由监听此事件的监听器去完成
+
 		- BootstrapApplicationListener
 
 			- 优先级最高，用于启动/创建 Spring Cloud 的应用上下文，此时 Spring Boot 的上下文 ApplicationContext 还并没有创建，类似于 Bean 的初始化，初始化 A 的时候遇到 B，需要先完成 B 的初始化
@@ -242,14 +257,17 @@ Spring Boot 事件模型
 		- ConfigFileApplicationListener
 
 			- 加载 SPI 配置的所有的 EnvironmentPostProcessor 实例，并且排好序。
+
 			- 排好序后，分别一个个的执行 EnvironmentPostProcessor
 
 				- SystemEnvironmentPropertySourceEnvironmentPostProcessor
+
 				- SpringApplicationJsonEnvironmentPostProcessor
 
 					- 把环境中 spring.application.json=xxx 值解析成为一个 MapPropertySource 属性源，然后放进环境里面去
 
 				- CloudFoundryVcapEnvironmentPostProcessor
+
 				- ConfigFileApplicationListener
 
 					- 加载 application.properties/yaml 等外部化配置，解析好后放进环境里
@@ -257,9 +275,13 @@ Spring Boot 事件模型
 						- 外部化配置默认的优先级
 
 							- classpath:/
+
 							- classpath:/config/
+
 							- file:./
+
 							- file:./config/
+
 							- 当前工程下的 config 目录里的 application.properties 优先级最高，当前工程类路径下的 application.properties 优先级最低
 
 						- bootstrap.xxx 也是由它负责加载的，处理规则一样
@@ -289,6 +311,7 @@ Spring Boot 事件模型
 		- FileEncodingApplicationListener
 
 			- 检测当前系统环境的 file.encoding 和 spring.mandatory-file-encoding 设置的值是否一样，不一样则抛出异常
+
 			- 如果不配置 spring.mandatory-file-encoding 则不检查
 
 	- bindToSpringApplication(environment)
@@ -320,7 +343,9 @@ Spring Boot 事件模型
 	- 上下文参数设置
 
 		- 环境 Enviroment 环境设置给它
+
 		- 设置 beanNameGenerator、resourceLoader、ConversionService 等组件
+
 		- 实例化所有的 ApplicationContextInitializer 上下文初始化器，并且排序好后挨个执行它
 
 			- BootstrapApplicationListener.AncestorInitializer
@@ -344,6 +369,7 @@ Spring Boot 事件模型
 				- 外部化配置 context.initializer.classes = xxx,xxx
 
 			- SharedMetadataReaderFactoryContextInitializer
+
 			- ContextIdApplicationContextInitializer
 
 				- 设置应用 ID -> applicationContext.setId()。默认取值为 spring.application.name，再为application，再为自动生成
@@ -353,11 +379,13 @@ Spring Boot 事件模型
 				- 错误的配置进行警告（不会终止程序），以 warn() 日志输出在控制台。默认内置的只有对包名的检查
 
 			- RSocketPortInfoApplicationContextInitializer
+
 			- ServerPortInfoApplicationContextInitializer
 
 				- 将自己作为一个监听器注册到上下文 ConfigurableApplicationContext 里，专门用于监听 WebServerInitializedEvent 事件
 
 					- ServletWebServerInitializedEvent
+
 					- ReactiveWebServerInitializedEvent
 
 			- ConditionEvaluationReportLoggingListener
@@ -367,6 +395,7 @@ Spring Boot 事件模型
 	- 发送 ApplicationContextInitializedEvent 事件
 
 		- BackgroundPreinitializer
+
 		- DelegatingApplicationListener
 
 ### ApplicationPreparedEvent
@@ -374,7 +403,9 @@ Spring Boot 事件模型
 - 上下文已准备好，应用上下文 ApplicationContext 初始化完成，该赋值的赋值了，Bean 定义信息也已全部加载完成。但是，单例 Bean 还没有被实例化，web 容器依旧还没启动。
 
 	- 把 applicationArguments、printedBanner 等都作为一个 Bean 放进 Bean 工厂里
+
 	- 若 lazyInitialization = true 延迟初始化，那就向 Bean 工厂放一个：new LazyInitializationBeanFactoryPostProcessor()
+
 	- 根据 primarySources 和 allSources，交给 BeanDefinitionLoader（Sprig Boot 提供的实现）实现加载 Bean 的定义信息
 
 		- AnnotatedBeanDefinitionReader
@@ -396,6 +427,7 @@ Spring Boot 事件模型
 	- 发送 ApplicationPreparedEvent 事件
 
 		- CloudFoundryVcapEnvironmentPostProcessor
+
 		- ConfigFileApplicationListener
 
 			- 向上下文注册一个 new PropertySourceOrderingPostProcessor(context)，Bean 工厂结束后对环境里的属性源进行重排序，把名字叫 defaultProperties 的属性源放在最末位
@@ -409,6 +441,7 @@ Spring Boot 事件模型
 			- 本事件达到时无动作
 
 		- RestartListener
+
 		- DelegatingApplicationListener
 
 			- 本事件达到时无动作
@@ -422,9 +455,11 @@ Spring Boot 事件模型
 		- AbstractApplicationContext#refresh()
 
 			- 实例化单例 Bean
+
 			- 在 Spring 容器 refresh() 启动完成后， WebServer 也随之完成启动，成功监听到对应端口
 
 	- 输出启动成功的日志
+
 	- 发送ApplicationStartedEvent事件
 
 		- BackgroundPreinitializer
@@ -452,7 +487,9 @@ Spring Boot 事件模型
 		- 当此事件到达时，告诉 Admin Spring 应用已经ready，可以使用
 
 	- BackgroundPreinitializer
+
 	- DelegatingApplicationListener
+
 	- RefreshEventListener
 
 		- 当此事件到达时，告诉 Spring 应用已经 ready，接下来可以执行 ContextRefresher.refresh()
@@ -472,7 +509,9 @@ Spring Boot 事件模型
 		- 输出一句 debug 日志
 
 	- BackgroundPreinitializer
+
 	- DelegatingApplicationListener
+
 	- ConditionEvaluationReportLoggingListener
 
 		- 自动配置输出报告，输出错误日志
@@ -480,4 +519,36 @@ Spring Boot 事件模型
 	- BootstrapApplicationListener.CloseContextOnFailureApplicationListener
 
 		- 执行 context.close()
+
+## SpringApplition.run 生命周期
+
+### 执行 run 方法
+
+- SpringApplicationRunListener.starting
+
+### 准备 environment
+
+- SpringApplicationRunListener.environmentPrepared
+
+### 构建 context
+
+- SpringApplicationRunListener.contextPrepared
+
+### context 资源加载
+
+- SpringApplicationRunListener.contextLoaded
+
+### 刷新 context
+
+- SpringApplicationRunListener.started
+
+### 调用 CommandLineRunner 和 ApplicationRunner
+
+- SpringApplicationRunListener.ready
+
+### run 方法结束
+
+### 运行期间程序出现异常
+
+- SpringApplicationRunListener.failed
 
